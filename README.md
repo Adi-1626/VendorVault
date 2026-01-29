@@ -58,6 +58,24 @@ BILL_GENERATION_SYSTEM/
 └── generated_bills/           # Generated PDF invoices
 ```
 
+## Quick Setup for Your Business
+
+Edit `config.py` to customize for your company:
+
+```python
+# ===== COMPANY CONFIGURATION =====
+COMPANY_NAME = "Your Company Name"
+COMPANY_FULL_NAME = "Your Company Full Name Pvt. Ltd."
+COMPANY_TAGLINE = "Your Tagline Here"
+COMPANY_ADDRESS = "Your Address, City - PIN"
+COMPANY_PHONE = "1234567890"
+COMPANY_GSTIN = "00XXXXX0000X0XX"
+COMPANY_STATE = "Your State"
+COMPANY_STATE_CODE = "00"
+```
+
+This updates the login screen, invoices, and PDF bills automatically.
+
 ## Installation
 
 ### Prerequisites

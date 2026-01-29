@@ -26,7 +26,23 @@ GENERATED_BILLS_DIR.mkdir(exist_ok=True)
 # Application constants
 APP_NAME = "Bill Generation System"
 APP_VERSION = "2.0.0"
+
+# ===== COMPANY CONFIGURATION =====
+# Customize these settings for your business
 COMPANY_NAME = "JAY LAXMI"
+COMPANY_FULL_NAME = "JAYLAXMI FOOD PROCESSING PVT. LTD."
+COMPANY_TAGLINE = "Free Time - Fun Time, All The Time!"
+COMPANY_ADDRESS = "Sr.No.135/1, Dhayari, Nanded Phata, Sinhgad Road, Pune - 411 041"
+COMPANY_PHONE = "8446061316"
+COMPANY_EMAIL = ""
+COMPANY_GSTIN = "27AADCJ0128Q1ZC"
+COMPANY_CIN = "U15490PN2013PTC146054"
+COMPANY_STATE = "Maharashtra"
+COMPANY_STATE_CODE = "27"
+
+# Invoice settings
+DEFAULT_HSN_CODE = "1905"  # Default HSN code for products
+DEFAULT_PLACE_OF_SUPPLY = f"{COMPANY_STATE} ({COMPANY_STATE_CODE})"
 
 # Tax configuration
 DEFAULT_GST_RATE = 18.0  # 18% GST

@@ -70,12 +70,12 @@ class PDFGenerator:
         styles = getSampleStyleSheet()
         
         # === HEADER ===
-        # Company Details
+        # Company Details (from config)
         company_header = [
-            [Paragraph("<b>JAYLAXMI FOOD PROCESSING PVT. LTD.</b>", ParagraphStyle('H1', fontSize=18, textColor=colors.HexColor('#8B4513'), alignment=1))],
-            [Paragraph("<i>(Free Time - Fun Time, All The Time!)</i>", ParagraphStyle('H2', fontSize=10, textColor=colors.black, alignment=1))],
-            [Paragraph("Sr.No.135/1, Dhayari, Nanded Phata, Sinhgad Road, Pune - 411 041", ParagraphStyle('Addr', fontSize=9, alignment=1))],
-            [Paragraph("GSTIN: <b>27AADCJ0128Q1ZC</b>  |  CIN: U15490PN2013PTC146054  |  Mob: 8446061316", ParagraphStyle('GST', fontSize=9, alignment=1))]
+            [Paragraph(f"<b>{config.COMPANY_FULL_NAME}</b>", ParagraphStyle('H1', fontSize=18, textColor=colors.HexColor('#8B4513'), alignment=1))],
+            [Paragraph(f"<i>({config.COMPANY_TAGLINE})</i>", ParagraphStyle('H2', fontSize=10, textColor=colors.black, alignment=1))],
+            [Paragraph(config.COMPANY_ADDRESS, ParagraphStyle('Addr', fontSize=9, alignment=1))],
+            [Paragraph(f"GSTIN: <b>{config.COMPANY_GSTIN}</b>  |  CIN: {config.COMPANY_CIN}  |  Mob: {config.COMPANY_PHONE}", ParagraphStyle('GST', fontSize=9, alignment=1))]
         ]
         t_header = Table(company_header, colWidths=[7.5*inch])
         t_header.setStyle(TableStyle([
@@ -92,7 +92,7 @@ class PDFGenerator:
         # Invoice Info & Customer Info Side-by-Side
         cust_info = [
             [Paragraph(f"<b>Invoice No:</b> {bill.bill_no}", styles['Normal']), Paragraph(f"<b>Date:</b> {bill.date}", styles['Normal'])],
-            [Paragraph(f"<b>Customer:</b> {bill.customer_name}", styles['Normal']), Paragraph(f"<b>Place of Supply:</b> Maharashtra (27)", styles['Normal'])],
+            [Paragraph(f"<b>Customer:</b> {bill.customer_name}", styles['Normal']), Paragraph(f"<b>Place of Supply:</b> {config.DEFAULT_PLACE_OF_SUPPLY}", styles['Normal'])],
             [Paragraph(f"<b>Phone:</b> {bill.customer_no}", styles['Normal']), Paragraph("<b>Payment Mode:</b> Cash/UPI", styles['Normal'])]
         ]
         t_info = Table(cust_info, colWidths=[4*inch, 3.5*inch])
@@ -189,7 +189,7 @@ class PDFGenerator:
         # Signatories
         sig_data = [
             [Paragraph("<b>Terms & Conditions:</b><br/>1. Goods once sold will not be taken back.<br/>2. Subject to Pune Jurisdiction.", ParagraphStyle('TnC', fontSize=8)),
-             Paragraph("<b>For Jaylaxmi Food Processing Pvt. Ltd.</b><br/><br/><br/><br/>Authorized Signatory", ParagraphStyle('Sig', alignment=2, fontSize=9))]
+             Paragraph(f"<b>For {config.COMPANY_FULL_NAME}</b><br/><br/><br/><br/>Authorized Signatory", ParagraphStyle('Sig', alignment=2, fontSize=9))]
         ]
         t_sig = Table(sig_data, colWidths=[4*inch, 3.5*inch])
         t_sig.setStyle(TableStyle([

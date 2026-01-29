@@ -9,6 +9,7 @@ from PySide6.QtCore import Qt, Signal
 from src.logic.employee_mgmt import EmployeeService
 from src.models.employee import Employee
 from src.ui.dark_theme import get_dark_stylesheet, PRIMARY, TEXT_WHITE, CARD_BG, BORDER, TEXT_GRAY
+import config
 
 
 class LoginWindow(QWidget):
@@ -148,7 +149,7 @@ class LoginWindow(QWidget):
         outer.addStretch()
         
         # Footer
-        footer = QLabel("© 2026 JAY LAXMI. All rights reserved.")
+        footer = QLabel(f"© 2026 {config.COMPANY_NAME}. All rights reserved.")
         footer.setAlignment(Qt.AlignCenter)
         footer.setStyleSheet(f"color: {TEXT_GRAY}; font-size: 13px; border: none;")
         outer.addWidget(footer)
