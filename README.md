@@ -103,8 +103,14 @@ BILL_GENERATION_SYSTEM/
 
 The application uses the existing employee data from your database. Login with any valid employee credentials:
 
-- **Admin users**: Will see the Admin Dashboard
-- **Regular employees**: Will see the Billing System
+- **Admin users**:
+  Id - ADM001
+  Password -admin123
+  Will see the Admin Dashboard
+- **Regular employees**:
+  Id - EMP001
+  Password -emp123
+  Will see the Billing System
 
 To view existing users, check the `employee` table in `data/store.db`.
 
