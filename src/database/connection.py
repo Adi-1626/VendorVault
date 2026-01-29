@@ -1,5 +1,5 @@
 """
-Database connection manager for Bill Generation System.
+Database connection manager for VendorVault.
 Provides thread-safe database connections and context manager support.
 """
 import sqlite3

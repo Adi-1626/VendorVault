@@ -47,7 +47,7 @@ class AdminDashboard(QMainWindow):
     
     def setup_ui(self):
         """Set up dark mode UI."""
-        self.setWindowTitle("Admin Dashboard - Bill Generation System")
+        self.setWindowTitle("Admin Dashboard - VendorVault")
         self.showMaximized()
         
         # Dark stylesheet

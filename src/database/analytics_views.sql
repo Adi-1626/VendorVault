@@ -1,6 +1,6 @@
 -- ============================================================================
 -- ANALYTICS SQL VIEWS
--- Enterprise-grade analytics views for POS Bill Generation System
+-- Enterprise-grade analytics views for VendorVault POS System
 -- Version: 2.0.0 | Created: January 2026
 -- ============================================================================
 

@@ -1,4 +1,4 @@
-# Bill Generation System
+# VendorVault
 
 A modern, professional Python desktop application for retail bill generation and inventory management.
 
@@ -42,7 +42,7 @@ A modern, professional Python desktop application for retail bill generation and
 ## Project Structure
 
 ```
-BILL_GENERATION_SYSTEM/
+VendorVault/
 ├── main.py                    # Application entry point
 ├── config.py                  # Configuration and constants
 ├── requirements.txt           # Python dependencies
@@ -205,7 +205,7 @@ To create a standalone Windows executable:
 
 2. **Create executable**:
    ```bash
-   pyinstaller --name="BillGenerationSystem" ^
+   pyinstaller --name="VendorVault" ^
                --onefile ^
                --windowed ^
                --add-data="src;src" ^
@@ -213,7 +213,7 @@ To create a standalone Windows executable:
                main.py
    ```
 
-3. **Executable will be in**: `dist/BillGenerationSystem.exe`
+3. **Executable will be in**: `dist/VendorVault.exe`
 
 ## Configuration
 
@@ -277,4 +277,3 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ---
 
 **Built by [Adi-1626](https://github.com/Adi-1626)** | *Originally developed for JAY LAXMI — customize company details in `config.py` for your business*
-

@@ -1,5 +1,5 @@
 """
-Configuration module for Bill Generation System.
+Configuration module for VendorVault.
 Manages all paths relative to project root and application constants.
 """
 import os
@@ -24,7 +24,7 @@ DATABASE_DIR.mkdir(exist_ok=True)
 GENERATED_BILLS_DIR.mkdir(exist_ok=True)
 
 # Application constants
-APP_NAME = "Bill Generation System"
+APP_NAME = "VendorVault"
 APP_VERSION = "2.0.0"
 
 # ===== COMPANY CONFIGURATION =====

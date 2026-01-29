@@ -24,7 +24,7 @@ class LoginWindow(QWidget):
     
     def setup_ui(self):
         """Set up dark mode UI."""
-        self.setWindowTitle("Login - Bill Generation System")
+        self.setWindowTitle("Login - VendorVault")
         self.showMaximized()
         
         # Apply dark theme
@@ -49,7 +49,7 @@ class LoginWindow(QWidget):
         center_layout.setSpacing(25)
         
         # Title
-        title = QLabel("⚡ Lightning POS")
+        title = QLabel("🏪 VendorVault")
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(f"color: {PRIMARY}; font-size: 36px; font-weight: bold; border: none;")
         center_layout.addWidget(title)

@@ -30,7 +30,7 @@ class ModernAnalyticsWindow(QMainWindow):
     
     def setup_ui(self):
         """Set up dark mode UI."""
-        self.setWindowTitle("Analytics & Insights - Bill Generation System")
+        self.setWindowTitle("Analytics & Insights - VendorVault")
         self.showMaximized()
         
         # Dark theme colors

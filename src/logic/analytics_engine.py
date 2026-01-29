@@ -1,5 +1,5 @@
 """
-Enterprise Analytics Engine for POS Bill Generation System.
+Enterprise Analytics Engine for VendorVault POS System.
 Provides KPI calculations, data aggregation, and analytics using Pandas.
 Version: 2.0.0 | Created: January 2026
 """

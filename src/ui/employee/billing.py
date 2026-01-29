@@ -69,7 +69,7 @@ class BillingWindow(QMainWindow):
     
     def setup_ui(self):
         """Setup UI optimized for 1920x1080."""
-        self.setWindowTitle("Lightning POS")
+        self.setWindowTitle("VendorVault")
         self.setMinimumSize(1200, 700)
         self.showMaximized()
         
@@ -198,7 +198,7 @@ class BillingWindow(QMainWindow):
         header = QHBoxLayout()
         header.setSpacing(15)
         
-        title = QLabel("⚡ LIGHTNING POS")
+        title = QLabel("🏪 VENDORVAULT")
         title.setStyleSheet(f"color: {BLUE}; font-size: 24px; font-weight: bold;")
         header.addWidget(title)
         
