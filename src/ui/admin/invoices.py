@@ -128,11 +128,26 @@ class InvoicesWindow(QMainWindow):
         dialog.exec()
     
     def generate_pdf(self, bill):
-        """Generate PDF for bill."""
+        """Generate PDF for bill and open it."""
+        import os
+        import subprocess
+        import sys
+        
         try:
-            QMessageBox.information(self, "PDF", f"PDF for bill {bill.bill_no} would be generated here.")
+            # Generate PDF using PDFGenerator
+            pdf_path = self.pdf_generator.generate_invoice(bill)
+            
+            # Open PDF in default viewer
+            if sys.platform == 'win32':
+                os.startfile(pdf_path)
+            elif sys.platform == 'darwin':  # macOS
+                subprocess.run(['open', pdf_path])
+            else:  # Linux
+                subprocess.run(['xdg-open', pdf_path])
+                
+            QMessageBox.information(self, "PDF Generated", f"PDF saved and opened:\n{pdf_path}")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"PDF failed: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to generate PDF: {e}")
 
 
 class BillViewDialog(QDialog):
@@ -176,10 +191,40 @@ class BillViewDialog(QDialog):
         total_label.setStyleSheet(f"color: {SUCCESS}; font-size: 24px; font-weight: bold;")
         layout.addWidget(total_label)
         
-        # Close
+        # Buttons
+        btn_layout = QHBoxLayout()
+        
+        open_pdf_btn = QPushButton("Open PDF")
+        open_pdf_btn.setStyleSheet(f"background: {SUCCESS}; color: white; border: none;")
+        open_pdf_btn.clicked.connect(self.open_pdf)
+        btn_layout.addWidget(open_pdf_btn)
+        
         close_btn = QPushButton("Close")
         close_btn.setStyleSheet(f"background: {PRIMARY}; color: white; border: none;")
         close_btn.clicked.connect(self.accept)
-        layout.addWidget(close_btn)
+        btn_layout.addWidget(close_btn)
         
+        layout.addLayout(btn_layout)
         self.setLayout(layout)
+    
+    def open_pdf(self):
+        """Generate and open PDF for this bill."""
+        import os
+        import subprocess
+        import sys
+        
+        try:
+            pdf_generator = PDFGenerator()
+            pdf_path = pdf_generator.generate_invoice(self.bill)
+            
+            # Open PDF in default viewer
+            if sys.platform == 'win32':
+                os.startfile(pdf_path)
+            elif sys.platform == 'darwin':
+                subprocess.run(['open', pdf_path])
+            else:
+                subprocess.run(['xdg-open', pdf_path])
+                
+            QMessageBox.information(self, "PDF Opened", f"PDF saved:\n{pdf_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to open PDF: {e}")
