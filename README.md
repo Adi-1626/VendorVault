@@ -258,4 +258,5 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-**Built by [Adi-1626](https://github.com/Adi-1626)** | *JAY LAXMI is a demo configuration - customize in `config.py`*
+**Built by [Adi-1626](https://github.com/Adi-1626)** | *Originally developed for JAY LAXMI — customize company details in `config.py` for your business*
+
