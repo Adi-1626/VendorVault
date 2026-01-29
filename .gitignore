@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+
+# Database backups (keep only store.db)
+data/*_backup*.db
+data/store_old_backup.db
 .Python
 build/
 develop-eggs/
