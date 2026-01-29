@@ -254,8 +254,8 @@ For issues or questions:
 
 ## License
 
-This is a private retail management system.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-**© 2026 JAY LAXMI. All rights reserved.**
+**Built by [Adi-1626](https://github.com/Adi-1626)** | *JAY LAXMI is a demo configuration - customize in `config.py`*
