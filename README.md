@@ -31,6 +31,12 @@ A modern, professional Python desktop application for retail bill generation and
 - Revenue tracking
 - Interactive matplotlib charts
 
+### 📱 Bluetooth Mobile Barcode Scanning & Market Comparison
+- Connect to a mobile device via Bluetooth for barcode scanning using the **[Bluetooth Keyboard & Mouse](https://play.google.com/store/apps/details?id=dev.fabik.bluetoothhid)** app (by Fabik)
+- Scan product barcodes using your phone's camera — the app sends scanned data to the PC over Bluetooth HID
+- Compare scanned barcodes against products available in the inventory
+- Seamless integration with the billing workflow — scanned products are added directly to the cart
+
 ## Technology Stack
 
 - **Framework**: PySide6 (Qt for Python)
