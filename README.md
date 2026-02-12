@@ -54,13 +54,14 @@ VendorVault/
 ├── requirements.txt           # Python dependencies
 │
 ├── src/
-│   ├──models/                 # Data models
+│   ├── models/                # Data models
 │   ├── database/              # Database layer
 │   ├── logic/                 # Business logic
 │   ├── ui/                    # PySide6 UI components
 │   └── utils/                 # Utility functions
 │
 ├── data/                      # Database storage
+├── fonts/                     # Custom fonts for PDF generation
 └── generated_bills/           # Generated PDF invoices
 ```
 
