@@ -1,5 +1,7 @@
 # VendorVault
 
+![VendorVault screenshot](docs/screenshots/VendorVault.jpg)
+
 A modern, professional Python desktop application for retail bill generation and inventory management.
 
 ## Features
