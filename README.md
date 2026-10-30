@@ -28,10 +28,13 @@ A modern, professional Python desktop application for retail bill generation and
 - Auto-generated employee IDs
 
 ### 📊 Analytics & Reports
-- Best-selling products (Day/Month/Year)
-- Profit analysis by product
-- Revenue tracking
-- Interactive matplotlib charts
+- Date ranges (Today, 7D, 30D, 90D, This year, Custom) with compare-to-previous-period
+- KPIs with sparklines: revenue, gross profit & margin, bills, avg bill value, units, items per bill
+- Revenue over time (hover for values), peak-hours heatmap (weekday × hour), sales by category
+- Top products, slow movers / dead stock, restock suggestions with days of cover
+- Margin by category and product, items selling below cost
+- Export the current view to CSV or PDF
+- Native QPainter charts, data loaded off the UI thread
 
 ### 📱 Bluetooth Mobile Barcode Scanning & Market Comparison
 - Connect to a mobile device via Bluetooth for barcode scanning using the **[Bluetooth QR & Barcode to PC](https://play.google.com/store/apps/details?id=dev.fabik.bluetoothhid)** app (by Fabik)
@@ -44,7 +47,7 @@ A modern, professional Python desktop application for retail bill generation and
 - **Framework**: PySide6 (Qt for Python)
 - **Database**: SQLite
 - **PDF Generation**: ReportLab
-- **Analytics**: Matplotlib, Pandas
+- **Analytics**: native QPainter charts (no matplotlib/pandas)
 - **Architecture**: MVC pattern with clean separation of concerns
 
 ## Project Structure
@@ -175,10 +178,10 @@ To view existing users, check the `employee` table in `data/store.db`.
    - Search bills by number or customer
    - View bill details
    - Generate PDFs for past bills
-6. **Analytics**:
-   - View best-selling products
-   - Analyze profit by product
-   - Track sales trends
+6. **Analytics** (Overview shows today; Analytics is the deep dive):
+   - Pick a date range and compare with the previous period
+   - Find peak hours, top and slow-moving products
+   - See margins (add cost prices in Inventory) and what to restock
 
 ## Key Features Explained
 
@@ -286,3 +289,32 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ---
 
 **Built by [Adi-1626](https://github.com/Adi-1626)** | *Originally developed for JAY LAXMI — customize company details in `config.py` for your business*
+
+## UI design system (v2.1 redesign)
+
+All colours, spacing, radii and the Inter font live in `src/ui/theme.py`; `main.py` installs one global
+stylesheet from it, and small reusable widgets (Card, StatCard, Stepper, Pill, KbdHint, SegmentedControl,
+Toast, ...) live in `src/ui/widgets/`. `src/ui/colors.py` and `src/ui/dark_theme.py` remain as thin
+compatibility aliases.
+
+### POS keyboard shortcuts
+
+| Key | Action |
+| --- | --- |
+| F1 | Focus search / scan field |
+| F2 | Edit quantity of the selected cart line (search when the cart is empty) |
+| F4 | Customer name & phone |
+| F8 | Hold the current sale |
+| F9 | Save only (no PDF) |
+| F10 | Held bills (recall) |
+| F12 · F5 · F7 | Charge: save + generate and open the PDF invoice |
+| Esc | Clear the search; when the search is empty, clear the sale (with confirmation) |
+| Ctrl+Z | Undo the last add |
+| Del · + · − | Remove / increase / decrease the selected line |
+| 1–8 | Quick-add best sellers (when not typing in a field) |
+
+### UI smoke test
+
+```bash
+QT_QPA_PLATFORM=offscreen python tests/ui_smoke_test.py   # runs on a temporary copy of data/store.db
+```

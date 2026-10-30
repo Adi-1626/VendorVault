@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from src.logic.billing import BillingService
 from src.utils.pdf_generator import PDFGenerator
-from src.ui.dark_theme import get_dark_stylesheet, PRIMARY, SUCCESS, TEXT_WHITE, TEXT_GRAY, CARD_BG, BORDER
+from src.ui.dark_theme import PRIMARY, SUCCESS, TEXT_WHITE, TEXT_GRAY, CARD_BG, BORDER
 
 
 class InvoicesWindow(QMainWindow):
@@ -26,7 +26,6 @@ class InvoicesWindow(QMainWindow):
         """Set up dark mode UI."""
         self.setWindowTitle("Invoices & Bills")
         self.setGeometry(150, 150, 1000, 600)
-        self.setStyleSheet(get_dark_stylesheet())
         
         central = QWidget()
         self.setCentralWidget(central)
@@ -37,7 +36,7 @@ class InvoicesWindow(QMainWindow):
         
         # Header
         header = QLabel("Invoices & Bills")
-        header.setStyleSheet(f"color: {PRIMARY}; font-size: 28px; font-weight: bold;")
+        header.setProperty("role", "h1")
         layout.addWidget(header)
         
         # Search filters
@@ -45,7 +44,7 @@ class InvoicesWindow(QMainWindow):
         filter_layout.setSpacing(15)
         
         search_label = QLabel("Search:")
-        search_label.setStyleSheet(f"color: {TEXT_WHITE}; font-size: 16px; font-weight: bold;")
+        search_label.setProperty("role", "muted")
         filter_layout.addWidget(search_label)
         
         self.search_input = QLineEdit()
@@ -54,7 +53,7 @@ class InvoicesWindow(QMainWindow):
         filter_layout.addWidget(self.search_input)
         
         search_btn = QPushButton("Search")
-        search_btn.setStyleSheet(f"background: {PRIMARY}; color: white; border: none;")
+        search_btn.setProperty("variant", "secondary")
         search_btn.clicked.connect(self.search_bills)
         filter_layout.addWidget(search_btn)
         
@@ -63,6 +62,12 @@ class InvoicesWindow(QMainWindow):
         filter_layout.addWidget(clear_btn)
         
         filter_layout.addStretch()
+
+        # Bill-level CSV export (moved here from the Overview page)
+        self.export_btn = QPushButton("Export CSV")
+        self.export_btn.setToolTip("Export the bills listed below to CSV")
+        self.export_btn.clicked.connect(self.export_csv)
+        filter_layout.addWidget(self.export_btn)
         layout.addLayout(filter_layout)
         
         # Table
@@ -80,6 +85,7 @@ class InvoicesWindow(QMainWindow):
         """Load bills into table."""
         if bills is None:
             bills = self.billing_service.search_bills()
+        self._shown_bills = list(bills)
         
         self.table.setRowCount(len(bills))
         for idx, bill in enumerate(bills):
@@ -98,19 +104,41 @@ class InvoicesWindow(QMainWindow):
             
             view_btn = QPushButton("View")
             view_btn.setCursor(Qt.PointingHandCursor)
-            view_btn.setStyleSheet(f"background: {PRIMARY}; color: white; border: none; padding: 4px 10px; border-radius: 4px;")
+            view_btn.setProperty("size", "sm")
             view_btn.clicked.connect(lambda checked, b=bill: self.view_bill(b))
             action_layout.addWidget(view_btn)
             
             pdf_btn = QPushButton("PDF")
             pdf_btn.setCursor(Qt.PointingHandCursor)
-            pdf_btn.setStyleSheet(f"background: {SUCCESS}; color: white; border: none; padding: 4px 10px; border-radius: 4px;")
+            pdf_btn.setProperty("size", "sm")
             pdf_btn.clicked.connect(lambda checked, b=bill: self.generate_pdf(b))
             action_layout.addWidget(pdf_btn)
             
             action_widget.setLayout(action_layout)
             self.table.setCellWidget(idx, 5, action_widget)
     
+    def export_csv(self, path=None):
+        """Export the bills currently listed to a CSV file."""
+        import csv
+        from PySide6.QtWidgets import QFileDialog
+        bills = getattr(self, "_shown_bills", [])
+        if path is None:
+            path, _ = QFileDialog.getSaveFileName(self, "Export bills", "vendorvault-bills.csv", "CSV files (*.csv)")
+            if not path:
+                return None
+        try:
+            with open(path, "w", newline="", encoding="utf-8") as fh:
+                w = csv.writer(fh)
+                w.writerow(["Bill No", "Date", "Customer", "Phone", "Subtotal", "Discount", "Tax rate", "Tax", "Total"])
+                for b in bills:
+                    w.writerow([b.bill_no, b.date, b.customer_name, b.customer_no, f"{b.subtotal:.2f}",
+                                f"{b.discount:.2f}", b.tax_rate, f"{b.tax_amount:.2f}", f"{b.total:.2f}"])
+        except OSError as e:
+            QMessageBox.critical(self, "Export failed", str(e))
+            return None
+        QMessageBox.information(self, "Export", f"Exported {len(bills)} bills to\n{path}")
+        return path
+
     def search_bills(self):
         """Search bills."""
         search_term = self.search_input.text().strip()
@@ -162,7 +190,6 @@ class BillViewDialog(QDialog):
         """Setup dark UI."""
         self.setWindowTitle(f"Bill Details - {self.bill.bill_no}")
         self.setMinimumSize(500, 400)
-        self.setStyleSheet(get_dark_stylesheet())
         
         layout = QVBoxLayout()
         layout.setContentsMargins(25, 25, 25, 25)
@@ -177,7 +204,7 @@ class BillViewDialog(QDialog):
         ]
         for text in info:
             label = QLabel(text)
-            label.setStyleSheet(f"color: {TEXT_WHITE}; font-size: 16px;")
+            label.setStyleSheet(f"color: {TEXT_WHITE}; font-size: 14px;")
             layout.addWidget(label)
         
         # Details
@@ -188,19 +215,19 @@ class BillViewDialog(QDialog):
         
         # Totals
         total_label = QLabel(f"TOTAL: ₹{self.bill.total:.2f}")
-        total_label.setStyleSheet(f"color: {SUCCESS}; font-size: 24px; font-weight: bold;")
+        total_label.setStyleSheet(f"color: {TEXT_WHITE}; font-size: 22px; font-weight: 700;")
         layout.addWidget(total_label)
         
         # Buttons
         btn_layout = QHBoxLayout()
         
         open_pdf_btn = QPushButton("Open PDF")
-        open_pdf_btn.setStyleSheet(f"background: {SUCCESS}; color: white; border: none;")
+        open_pdf_btn.setProperty("variant", "primary")
         open_pdf_btn.clicked.connect(self.open_pdf)
         btn_layout.addWidget(open_pdf_btn)
         
         close_btn = QPushButton("Close")
-        close_btn.setStyleSheet(f"background: {PRIMARY}; color: white; border: none;")
+        close_btn.setProperty("variant", "secondary")
         close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(close_btn)
         

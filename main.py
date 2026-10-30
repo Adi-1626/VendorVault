@@ -14,16 +14,17 @@ from src.ui.login import LoginWindow
 from src.ui.admin.dashboard import AdminDashboard
 from src.ui.employee.billing import BillingWindow
 from src.database.migrations import run_migrations
+from src.ui.theme import apply_theme
 import config
 
 
 def load_stylesheet(app: QApplication):
-    """Load and apply the application stylesheet."""
-    qss_file = project_root / "src" / "ui" / "styles" / "default.qss"
-    
-    if qss_file.exists():
-        with open(qss_file, 'r') as f:
-            app.setStyleSheet(f.read())
+    """Load the bundled Inter font and apply the shared design-system theme.
+
+    All colours, fonts and widget styles live in ``src/ui/theme.py``; the
+    old ``styles/default.qss`` is no longer used.
+    """
+    apply_theme(app)
 
 
 def main():
@@ -36,8 +37,8 @@ def main():
     app.setApplicationVersion(config.APP_VERSION)
     app.setOrganizationName(config.COMPANY_NAME)
     
-    # Enable high DPI scaling
-    app.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    # High-DPI scaling and pixmaps are always enabled in Qt 6
+    # (Qt.AA_UseHighDpiPixmaps is deprecated and a no-op there).
     
     # Load stylesheet
     load_stylesheet(app)
