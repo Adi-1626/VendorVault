@@ -33,7 +33,7 @@ config.DATABASE_PATH = test_db
 config.GENERATED_BILLS_DIR = tmpdir / "bills"
 config.GENERATED_BILLS_DIR.mkdir()
 
-from PySide6.QtCore import Qt, QTimer  # noqa: E402
+from PySide6.QtCore import Qt, QTimer, QEvent  # noqa: E402
 from PySide6.QtGui import QKeyEvent  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QDialog, QLabel  # noqa: E402
@@ -556,6 +556,20 @@ sb.setValue(sb.maximum())
 settle(20)
 check("scroll: can reach the bottom", sb.value() == sb.maximum())
 sb.setValue(0)
+
+# (i) info markers show their explanation on click and hide on leave
+from src.ui.admin.analytics.components import InfoDot  # noqa: E402
+dots = ap.findChildren(InfoDot)
+if dots:
+    QTest.mouseClick(dots[0], Qt.LeftButton)
+    settle(30)
+    bub = InfoDot._popover
+    check("info (i) shows its explanation on click", bub is not None and bub.isVisible() and bool(bub.text()),
+          "" if bub is None else bub.text())
+    QApplication.sendEvent(dots[0], QEvent(QEvent.Leave))
+    check("info (i) hides on mouse leave", not bub.isVisible())
+else:
+    check("info (i) markers present on KPI cards", False)
 
 # responsive KPI grid
 g = ap.kpi_grid
