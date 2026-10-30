@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional, Sequence, Tuple, Union
 
-from PySide6.QtCore import QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QPoint, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
     QBoxLayout, QFrame, QGridLayout, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget,
@@ -98,18 +98,84 @@ class InfoDot(QWidget):
 
     def __init__(self, tip: str, parent: Optional[QWidget] = None):
         super().__init__(parent)
-        self.setToolTip(tip)
-        self.setFixedSize(14, 14)
-        self.setCursor(Qt.WhatsThisCursor)
+        self._tip = tip
+        self._hover = False
+        self.setFixedSize(18, 18)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setAttribute(Qt.WA_Hover, True)
+        self.setMouseTracking(True)
+        self.setAccessibleName("More info")
+        self.setAccessibleDescription(tip)
+
+    # The tip is our own small popover rather than QToolTip: Qt's delayed native
+    # tooltip did not appear for some Windows users, so we show and hide it ourselves
+    # on hover and on click.
+    _popover: Optional[QLabel] = None
+
+    @classmethod
+    def _bubble(cls) -> QLabel:
+        if cls._popover is None:
+            lab = QLabel()
+            lab.setWindowFlags(Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+            lab.setAttribute(Qt.WA_ShowWithoutActivating, True)
+            lab.setAttribute(Qt.WA_TranslucentBackground, True)
+            lab.setWordWrap(True)
+            lab.setStyleSheet(
+                f"QLabel {{ background: {T.SURFACE_3}; color: {T.TEXT}; border: 1px solid {T.BORDER_2};"
+                f" border-radius: 8px; padding: 8px 10px; font-size: 12px; }}")
+            cls._popover = lab
+        return cls._popover
+
+    def _show_tip(self) -> None:
+        lab = self._bubble()
+        lab.setText(self._tip)
+        text_w = lab.fontMetrics().horizontalAdvance(self._tip) + 24
+        lab.setFixedWidth(max(120, min(280, text_w)))
+        lab.adjustSize()
+        pos = self.mapToGlobal(QPoint(self.width() // 2 - 16, self.height() + 6))
+        screen = self.screen().availableGeometry() if self.screen() else None
+        if screen is not None and pos.x() + lab.width() > screen.right():
+            pos.setX(screen.right() - lab.width() - 8)
+        lab.move(pos)
+        lab.show()
+        lab.raise_()
+
+    @classmethod
+    def hide_tip(cls) -> None:
+        if cls._popover is not None:
+            cls._popover.hide()
+
+    def enterEvent(self, e) -> None:  # noqa: N802
+        self._hover = True
+        self.update()
+        QTimer.singleShot(200, lambda: self._hover and self._show_tip())
+        super().enterEvent(e)
+
+    def leaveEvent(self, e) -> None:  # noqa: N802
+        self._hover = False
+        self.update()
+        self.hide_tip()
+        super().leaveEvent(e)
+
+    def mousePressEvent(self, e) -> None:  # noqa: N802
+        if e.button() == Qt.LeftButton:
+            self._show_tip()
+        super().mousePressEvent(e)
+
+    def hideEvent(self, e) -> None:  # noqa: N802
+        self.hide_tip()
+        super().hideEvent(e)
 
     def paintEvent(self, _e) -> None:  # noqa: N802
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
-        p.setPen(QPen(QColor(T.FAINT), 1.1))
+        c = QColor(T.TEXT if self._hover else T.FAINT)
+        p.translate(2, 2)
+        p.setPen(QPen(c, 1.1))
         p.setBrush(Qt.NoBrush)
         p.drawEllipse(QRectF(1, 1, 12, 12))
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor(T.FAINT))
+        p.setBrush(c)
         p.drawEllipse(QRectF(6.3, 3.6, 1.6, 1.6))
         p.drawRoundedRect(QRectF(6.4, 6.0, 1.4, 4.6), 0.7, 0.7)
 
