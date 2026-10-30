@@ -15,22 +15,44 @@ from datetime import datetime, timedelta
 
 from src.logic.analytics_engine import AnalyticsEngine, DateRange, KPICalculator
 from src.logic.chart_builder import ChartBuilder, ChartTheme
+from src.ui import theme as T
 
 
 # =============================================================================
 # THEME CONSTANTS
 # =============================================================================
 
-BG_DARK = '#0F172A'
-BG_CARD = '#1E293B'
-BORDER = '#334155'
-TEXT_PRIMARY = '#F8FAFC'
-TEXT_SECONDARY = '#CBD5E1'  # Lighter for better readability
-PRIMARY = '#3B82F6'
-SUCCESS = '#22C55E'
-WARNING = '#F59E0B'
-DANGER = '#EF4444'
-PURPLE = '#8B5CF6'
+# Colours come from the shared design system (src/ui/theme.py).
+BG_DARK = T.BG
+BG_CARD = T.SURFACE
+BORDER = T.BORDER
+TEXT_PRIMARY = T.TEXT
+TEXT_SECONDARY = T.MUTED
+PRIMARY = T.ACCENT
+SUCCESS = T.SUCCESS
+WARNING = T.WARNING
+DANGER = T.DANGER
+PURPLE = T.ACCENT
+
+
+def _apply_chart_theme() -> None:
+    """Point the matplotlib chart palette at the app theme (presentation only)."""
+    ChartTheme.BG_DARK = T.BG
+    ChartTheme.BG_CARD = T.SURFACE
+    ChartTheme.TEXT_PRIMARY = T.TEXT
+    ChartTheme.TEXT_SECONDARY = T.MUTED
+    ChartTheme.GRID_COLOR = T.SURFACE_3
+    ChartTheme.BORDER_COLOR = T.BORDER_2
+    ChartTheme.PRIMARY = T.ACCENT
+    ChartTheme.SUCCESS = T.SUCCESS
+    ChartTheme.WARNING = T.WARNING
+    ChartTheme.DANGER = T.DANGER
+    ChartTheme.PURPLE = '#A99FF9'
+    ChartTheme.PALETTE_BARS = [T.ACCENT, '#A99FF9', '#5B4FD1', T.SUCCESS, T.WARNING, '#C9C3FB', T.DANGER, T.MUTED]
+    ChartTheme.PALETTE_GRADIENT = [T.ACCENT, '#9488F8', '#ACA3F9', '#C4BEFB', '#DCD8FC']
+
+
+_apply_chart_theme()
 
 # Layout constants
 SPACING_SECTION = 24
@@ -76,9 +98,8 @@ class KPICard(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: {BG_CARD};
-                border: 2px solid {BORDER};
-                border-left: 4px solid {color};
-                border-radius: 10px;
+                border: 1px solid {BORDER};
+                border-radius: 14px;
             }}
         """)
         self.setMinimumHeight(120)
@@ -98,7 +119,7 @@ class KPICard(QFrame):
         value_row.setSpacing(8)
         
         value_label = QLabel(f"{prefix}{value}")
-        value_label.setStyleSheet(f"color: {color}; font-size: 28px; font-weight: bold; border: none;")
+        value_label.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 28px; font-weight: 600; border: none;")
         value_row.addWidget(value_label)
         
         # Change indicator
@@ -108,7 +129,7 @@ class KPICard(QFrame):
             change_label = QLabel(f"{arrow} {abs(change):.1f}%")
             change_label.setStyleSheet(f"""
                 color: {change_color}; font-size: 12px; font-weight: bold;
-                background: {change_color}20; padding: 3px 8px; 
+                background: {T.rgba(change_color, 0.12)}; padding: 3px 8px; 
                 border-radius: 4px; border: none;
             """)
             value_row.addWidget(change_label)
@@ -136,55 +157,15 @@ class FilterBar(QFrame):
         self.setup_ui()
     
     def setup_ui(self):
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self.setStyleSheet(f"""
-            QFrame {{
+            FilterBar {{
                 background-color: {BG_CARD};
-                border: 2px solid {BORDER};
-                border-radius: 10px;
+                border: 1px solid {BORDER};
+                border-radius: 14px;
             }}
-            QLabel {{
-                color: {TEXT_SECONDARY};
-                font-size: 12px;
-                font-weight: bold;
-                border: none;
-            }}
-            QComboBox {{
-                background-color: {BG_DARK};
-                color: {TEXT_PRIMARY};
-                border: 2px solid {BORDER};
-                border-radius: 6px;
-                padding: 8px 12px;
-                font-size: 13px;
-                min-width: 120px;
-            }}
-            QComboBox::drop-down {{
-                border: none;
-            }}
-            QComboBox QAbstractItemView {{
-                background-color: {BG_CARD};
-                color: {TEXT_PRIMARY};
-                selection-background-color: {PRIMARY};
-            }}
-            QDateEdit {{
-                background-color: {BG_DARK};
-                color: {TEXT_PRIMARY};
-                border: 2px solid {BORDER};
-                border-radius: 6px;
-                padding: 8px;
-                font-size: 13px;
-            }}
-            QPushButton {{
-                background-color: {PRIMARY};
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 10px 20px;
-                font-size: 13px;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: #2563EB;
-            }}
+            QLabel {{ color: {TEXT_SECONDARY}; font-size: 12px; font-weight: 500; }}
+            QComboBox {{ min-width: 120px; }}
         """)
         
         layout = QHBoxLayout(self)
@@ -236,7 +217,7 @@ class FilterBar(QFrame):
         layout.addStretch()
         
         # Refresh button
-        self.refresh_btn = QPushButton("🔄 Refresh")
+        self.refresh_btn = QPushButton("Refresh")
         self.refresh_btn.clicked.connect(self._trigger_refresh)
         layout.addWidget(self.refresh_btn)
     
@@ -292,36 +273,8 @@ class DataTable(QTableWidget):
         self.setup_style()
     
     def setup_style(self):
-        self.setStyleSheet(f"""
-            QTableWidget, QTableView {{
-                background-color: {BG_CARD};
-                alternate-background-color: #273449;
-                color: {TEXT_PRIMARY};
-                gridline-color: {BORDER};
-                font-size: 10.5pt;
-                border: 2px solid {BORDER};
-                border-radius: 8px;
-            }}
-            QHeaderView::section {{
-                background-color: {BG_DARK};
-                color: {TEXT_PRIMARY};
-                font-weight: bold;
-                border: 1px solid {BORDER};
-                padding: 8px;
-                font-size: 11pt;
-            }}
-            QTableWidget::item {{
-                color: {TEXT_PRIMARY};
-                padding: 8px;
-            }}
-            QTableWidget::item:selected {{
-                background-color: {PRIMARY};
-                color: #ffffff;
-            }}
-            QTableWidget::item:hover {{
-                background-color: {BORDER};
-            }}
-        """)
+        # Base table look comes from the global theme (src/ui/theme.py).
+        self.setStyleSheet(f"QHeaderView::section {{ color: {TEXT_SECONDARY}; font-size: 11px; }}")
         # Column resize modes
         self.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         for i in range(1, self.columnCount()):
@@ -420,7 +373,7 @@ class SalesTab(QWidget):
         table_section = QVBoxLayout()
         table_section.setSpacing(8)
         
-        table_label = QLabel("📊 Product Performance")
+        table_label = QLabel("Product Performance")
         table_label.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 15px; font-weight: bold;")
         table_section.addWidget(table_label)
         
@@ -437,7 +390,7 @@ class SalesTab(QWidget):
         container.setStyleSheet(f"""
             QFrame {{
                 background: {BG_CARD};
-                border: 2px solid {BORDER};
+                border: 1px solid {BORDER};
                 border-radius: 12px;
             }}
         """)
@@ -454,28 +407,28 @@ class SalesTab(QWidget):
         self._clear_layout(self.top_layout)
         
         # Revenue trend
-        trend_title = QLabel("📈 Revenue Trend")
+        trend_title = QLabel("Revenue Trend")
         trend_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 14px; font-weight: bold; border: none;")
         self.trend_layout.addWidget(trend_title)
         trend_chart = self.charts.build_revenue_trend(data.get('trend', []))
         self.trend_layout.addWidget(trend_chart)
         
         # Sales by type
-        type_title = QLabel("📂 Sales by Type")
+        type_title = QLabel("Sales by Type")
         type_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 14px; font-weight: bold; border: none;")
         self.type_layout.addWidget(type_title)
         type_chart = self.charts.build_sales_by_type(data.get('by_type', []))
         self.type_layout.addWidget(type_chart)
         
         # Sales by brand
-        brand_title = QLabel("🏷️ Sales by Brand")
+        brand_title = QLabel("Sales by Brand")
         brand_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 14px; font-weight: bold; border: none;")
         self.brand_layout.addWidget(brand_title)
         brand_chart = self.charts.build_sales_by_brand(data.get('by_brand', []))
         self.brand_layout.addWidget(brand_chart)
         
         # Top products chart
-        top_title = QLabel("🏆 Top Products")
+        top_title = QLabel("Top Products")
         top_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 14px; font-weight: bold; border: none;")
         self.top_layout.addWidget(top_title)
         top_chart = self.charts.build_top_products_chart(data.get('top_products', []))
@@ -527,7 +480,7 @@ class InventoryTab(QWidget):
         table_section = QVBoxLayout()
         table_section.setSpacing(8)
         
-        table_label = QLabel("⚠️ Low Stock Alerts")
+        table_label = QLabel("Low Stock Alerts")
         table_label.setStyleSheet(f"color: {DANGER}; font-size: 15px; font-weight: bold;")
         table_section.addWidget(table_label)
         
@@ -543,7 +496,7 @@ class InventoryTab(QWidget):
         container.setStyleSheet(f"""
             QFrame {{
                 background: {BG_CARD};
-                border: 2px solid {BORDER};
+                border: 1px solid {BORDER};
                 border-radius: 12px;
             }}
         """)
@@ -557,14 +510,14 @@ class InventoryTab(QWidget):
         self._clear_layout(self.dist_layout)
         
         # Stock status
-        status_title = QLabel("📊 Stock Status")
+        status_title = QLabel("Stock Status")
         status_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 14px; font-weight: bold; border: none;")
         self.status_layout.addWidget(status_title)
         status_chart = self.charts.build_stock_status_bars(data.get('kpis', {}))
         self.status_layout.addWidget(status_chart)
         
         # Distribution
-        dist_title = QLabel("📦 Stock Distribution")
+        dist_title = QLabel("Stock Distribution")
         dist_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 14px; font-weight: bold; border: none;")
         self.dist_layout.addWidget(dist_title)
         dist_chart = self.charts.build_stock_distribution_pie(data.get('by_type', []))
@@ -618,7 +571,7 @@ class ProfitabilityTab(QWidget):
         table_section = QVBoxLayout()
         table_section.setSpacing(8)
         
-        table_label = QLabel("💰 Profit Analysis")
+        table_label = QLabel("Profit Analysis")
         table_label.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 15px; font-weight: bold;")
         table_section.addWidget(table_label)
         
@@ -634,7 +587,7 @@ class ProfitabilityTab(QWidget):
         container.setStyleSheet(f"""
             QFrame {{
                 background: {BG_CARD};
-                border: 2px solid {BORDER};
+                border: 1px solid {BORDER};
                 border-radius: 12px;
             }}
         """)
@@ -648,14 +601,14 @@ class ProfitabilityTab(QWidget):
         self._clear_layout(self.category_layout)
         
         # Profit by product
-        prod_title = QLabel("💰 Profit by Product")
+        prod_title = QLabel("Profit by Product")
         prod_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 14px; font-weight: bold; border: none;")
         self.product_layout.addWidget(prod_title)
         prod_chart = self.charts.build_profit_by_product(data.get('by_product', []))
         self.product_layout.addWidget(prod_chart)
         
         # Profit by category
-        cat_title = QLabel("📂 Profit by Category")
+        cat_title = QLabel("Profit by Category")
         cat_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 14px; font-weight: bold; border: none;")
         self.category_layout.addWidget(cat_title)
         cat_chart = self.charts.build_profit_by_category(data.get('by_category', []))
@@ -709,7 +662,7 @@ class SupplierTab(QWidget):
         table_section = QVBoxLayout()
         table_section.setSpacing(8)
         
-        table_label = QLabel("🏭 Supplier Performance")
+        table_label = QLabel("Supplier Performance")
         table_label.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 15px; font-weight: bold;")
         table_section.addWidget(table_label)
         
@@ -725,7 +678,7 @@ class SupplierTab(QWidget):
         container.setStyleSheet(f"""
             QFrame {{
                 background: {BG_CARD};
-                border: 2px solid {BORDER};
+                border: 1px solid {BORDER};
                 border-radius: 12px;
             }}
         """)
@@ -741,7 +694,7 @@ class SupplierTab(QWidget):
         performance = data.get('performance', [])
         
         # Performance chart
-        perf_title = QLabel("📊 Products per Supplier")
+        perf_title = QLabel("Products per Supplier")
         perf_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 14px; font-weight: bold; border: none;")
         self.perf_layout.addWidget(perf_title)
         perf_chart = self.charts.build_supplier_performance(performance)
@@ -777,8 +730,9 @@ class EnterpriseDashboard(QMainWindow):
     Professional KPI-driven analytics with tabbed modules.
     """
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, embedded: bool = False):
         super().__init__(parent)
+        self.embedded = embedded  # True when shown inside the admin dashboard
         self.engine = AnalyticsEngine()
         self.charts = ChartBuilder()
         self.current_filters = {'date_range': '30D', 'custom_start': None, 'custom_end': None}
@@ -794,39 +748,8 @@ class EnterpriseDashboard(QMainWindow):
     def setup_ui(self):
         """Set up the dashboard UI."""
         self.setWindowTitle("Enterprise Analytics Dashboard")
-        self.showMaximized()
-        
-        self.setStyleSheet(f"""
-            QMainWindow, QWidget {{
-                background-color: {BG_DARK};
-                color: {TEXT_PRIMARY};
-            }}
-            QTabWidget::pane {{
-                border: none;
-                background-color: {BG_DARK};
-            }}
-            QTabBar::tab {{
-                background-color: {BG_CARD};
-                color: {TEXT_SECONDARY};
-                padding: 12px 25px;
-                margin-right: 4px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-                font-size: 14px;
-                font-weight: bold;
-            }}
-            QTabBar::tab:selected {{
-                background-color: {PRIMARY};
-                color: white;
-            }}
-            QTabBar::tab:hover:!selected {{
-                background-color: {BORDER};
-            }}
-            QScrollArea {{
-                border: none;
-                background-color: {BG_DARK};
-            }}
-        """)
+        if not self.embedded:
+            self.showMaximized()
         
         # Main scroll area with smooth scrolling
         scroll = SmoothScrollArea()
@@ -842,27 +765,15 @@ class EnterpriseDashboard(QMainWindow):
         
         # Header
         header = QHBoxLayout()
-        title = QLabel("📊 Enterprise Analytics")
-        title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 28px; font-weight: bold;")
+        title = QLabel("Analytics")
+        title.setProperty("role", "h1")
         header.addWidget(title)
         header.addStretch()
         
         # Back button
         back_btn = QPushButton("← Back to Dashboard")
-        back_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {BG_CARD};
-                color: {TEXT_PRIMARY};
-                border: 2px solid {BORDER};
-                border-radius: 6px;
-                padding: 10px 20px;
-                font-size: 13px;
-            }}
-            QPushButton:hover {{
-                background-color: {BORDER};
-            }}
-        """)
         back_btn.clicked.connect(self.close)
+        back_btn.setVisible(not self.embedded)
         header.addWidget(back_btn)
         
         main_layout.addLayout(header)
@@ -885,10 +796,10 @@ class EnterpriseDashboard(QMainWindow):
         self.profitability_tab = ProfitabilityTab()
         self.supplier_tab = SupplierTab()
         
-        self.tabs.addTab(self.sales_tab, "📈 Sales")
-        self.tabs.addTab(self.inventory_tab, "📦 Inventory")
-        self.tabs.addTab(self.profitability_tab, "💰 Profitability")
-        self.tabs.addTab(self.supplier_tab, "🏭 Suppliers")
+        self.tabs.addTab(self.sales_tab, "Sales")
+        self.tabs.addTab(self.inventory_tab, "Inventory")
+        self.tabs.addTab(self.profitability_tab, "Profitability")
+        self.tabs.addTab(self.supplier_tab, "Suppliers")
         
         main_layout.addWidget(self.tabs)
         

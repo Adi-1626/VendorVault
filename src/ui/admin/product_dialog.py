@@ -33,7 +33,7 @@ class ProductDialog(QDialog):
         
         # Header
         header = QLabel("Product & Variant Management")
-        header.setStyleSheet("font-size: 20px; font-weight: bold; color: #000000;")
+        header.setProperty("role", "h2")  # was black text (invisible on the dark theme)
         main_layout.addWidget(header)
         
         # Tab widget for organization
@@ -93,18 +93,18 @@ class ProductDialog(QDialog):
         product_layout.addRow("Status:", self.active_checkbox)
         
         product_tab.setLayout(product_layout)
-        tabs.addTab(product_tab, "📦 Product Info")
+        tabs.addTab(product_tab, "Product Info")
         
         # Tab 2: Variants
         variant_tab = QWidget()
         variant_layout = QVBoxLayout()
         
         variant_header = QLabel("Product Variants")
-        variant_header.setStyleSheet("font-size: 16px; font-weight: bold;")
+        variant_header.setProperty("role", "h3")
         variant_layout.addWidget(variant_header)
         
-        help_text = QLabel("💡 Add at least one variant (e.g., 250g Pack, 500g Pack). One must be marked as default.")
-        help_text.setStyleSheet("color: #6B7280; font-size: 12px;")
+        help_text = QLabel("Add at least one variant (e.g., 250g Pack, 500g Pack). One must be marked as default.")
+        help_text.setProperty("role", "muted")
         help_text.setWordWrap(True)
         variant_layout.addWidget(help_text)
         
@@ -130,36 +130,12 @@ class ProductDialog(QDialog):
         
         # Variant buttons
         variant_btn_layout = QHBoxLayout()
-        add_variant_btn = QPushButton("➕ Add Variant")
-        add_variant_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #10B981;
-                color: white;
-                padding: 8px 16px;
-                font-size: 14px;
-                font-weight: 600;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #059669;
-            }
-        """)
+        add_variant_btn = QPushButton("Add Variant")
+        add_variant_btn.setProperty("variant", "secondary")
         add_variant_btn.clicked.connect(self.add_variant)
         
-        remove_variant_btn = QPushButton("🗑️ Remove Selected")
-        remove_variant_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #EF4444;
-                color: white;
-                padding: 8px 16px;
-                font-size: 14px;
-                font-weight: 600;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #DC2626;
-            }
-        """)
+        remove_variant_btn = QPushButton("Remove Selected")
+        remove_variant_btn.setProperty("variant", "danger")
         remove_variant_btn.clicked.connect(self.remove_variant)
         
         variant_btn_layout.addWidget(add_variant_btn)
@@ -168,7 +144,7 @@ class ProductDialog(QDialog):
         variant_layout.addLayout(variant_btn_layout)
         
         variant_tab.setLayout(variant_layout)
-        tabs.addTab(variant_tab, "📊 Variants")
+        tabs.addTab(variant_tab, "Variants")
         
         main_layout.addWidget(tabs)
         
@@ -176,20 +152,8 @@ class ProductDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         
-        save_btn = QPushButton("💾 Save Product")
-        save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2563EB;
-                color: white;
-                padding: 10px 24px;
-                font-size: 15px;
-                font-weight: 600;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #1D4ED8;
-            }
-        """)
+        save_btn = QPushButton("Save Product")
+        save_btn.setProperty("variant", "primary")
         save_btn.clicked.connect(self.validate_and_save)
         
         cancel_btn = QPushButton("Cancel")

@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from src.logic.billing import BillingService
 from src.utils.pdf_generator import PDFGenerator
-from src.ui.dark_theme import get_dark_stylesheet, PRIMARY, SUCCESS, TEXT_WHITE, TEXT_GRAY, CARD_BG, BORDER
+from src.ui.dark_theme import PRIMARY, SUCCESS, TEXT_WHITE, TEXT_GRAY, CARD_BG, BORDER
 
 
 class InvoicesWindow(QMainWindow):
@@ -26,7 +26,6 @@ class InvoicesWindow(QMainWindow):
         """Set up dark mode UI."""
         self.setWindowTitle("Invoices & Bills")
         self.setGeometry(150, 150, 1000, 600)
-        self.setStyleSheet(get_dark_stylesheet())
         
         central = QWidget()
         self.setCentralWidget(central)
@@ -37,7 +36,7 @@ class InvoicesWindow(QMainWindow):
         
         # Header
         header = QLabel("Invoices & Bills")
-        header.setStyleSheet(f"color: {PRIMARY}; font-size: 28px; font-weight: bold;")
+        header.setProperty("role", "h1")
         layout.addWidget(header)
         
         # Search filters
@@ -45,7 +44,7 @@ class InvoicesWindow(QMainWindow):
         filter_layout.setSpacing(15)
         
         search_label = QLabel("Search:")
-        search_label.setStyleSheet(f"color: {TEXT_WHITE}; font-size: 16px; font-weight: bold;")
+        search_label.setProperty("role", "muted")
         filter_layout.addWidget(search_label)
         
         self.search_input = QLineEdit()
@@ -54,7 +53,7 @@ class InvoicesWindow(QMainWindow):
         filter_layout.addWidget(self.search_input)
         
         search_btn = QPushButton("Search")
-        search_btn.setStyleSheet(f"background: {PRIMARY}; color: white; border: none;")
+        search_btn.setProperty("variant", "secondary")
         search_btn.clicked.connect(self.search_bills)
         filter_layout.addWidget(search_btn)
         
@@ -98,13 +97,13 @@ class InvoicesWindow(QMainWindow):
             
             view_btn = QPushButton("View")
             view_btn.setCursor(Qt.PointingHandCursor)
-            view_btn.setStyleSheet(f"background: {PRIMARY}; color: white; border: none; padding: 4px 10px; border-radius: 4px;")
+            view_btn.setProperty("size", "sm")
             view_btn.clicked.connect(lambda checked, b=bill: self.view_bill(b))
             action_layout.addWidget(view_btn)
             
             pdf_btn = QPushButton("PDF")
             pdf_btn.setCursor(Qt.PointingHandCursor)
-            pdf_btn.setStyleSheet(f"background: {SUCCESS}; color: white; border: none; padding: 4px 10px; border-radius: 4px;")
+            pdf_btn.setProperty("size", "sm")
             pdf_btn.clicked.connect(lambda checked, b=bill: self.generate_pdf(b))
             action_layout.addWidget(pdf_btn)
             
@@ -162,7 +161,6 @@ class BillViewDialog(QDialog):
         """Setup dark UI."""
         self.setWindowTitle(f"Bill Details - {self.bill.bill_no}")
         self.setMinimumSize(500, 400)
-        self.setStyleSheet(get_dark_stylesheet())
         
         layout = QVBoxLayout()
         layout.setContentsMargins(25, 25, 25, 25)
@@ -177,7 +175,7 @@ class BillViewDialog(QDialog):
         ]
         for text in info:
             label = QLabel(text)
-            label.setStyleSheet(f"color: {TEXT_WHITE}; font-size: 16px;")
+            label.setStyleSheet(f"color: {TEXT_WHITE}; font-size: 14px;")
             layout.addWidget(label)
         
         # Details
@@ -188,19 +186,19 @@ class BillViewDialog(QDialog):
         
         # Totals
         total_label = QLabel(f"TOTAL: ₹{self.bill.total:.2f}")
-        total_label.setStyleSheet(f"color: {SUCCESS}; font-size: 24px; font-weight: bold;")
+        total_label.setStyleSheet(f"color: {TEXT_WHITE}; font-size: 22px; font-weight: 700;")
         layout.addWidget(total_label)
         
         # Buttons
         btn_layout = QHBoxLayout()
         
         open_pdf_btn = QPushButton("Open PDF")
-        open_pdf_btn.setStyleSheet(f"background: {SUCCESS}; color: white; border: none;")
+        open_pdf_btn.setProperty("variant", "primary")
         open_pdf_btn.clicked.connect(self.open_pdf)
         btn_layout.addWidget(open_pdf_btn)
         
         close_btn = QPushButton("Close")
-        close_btn.setStyleSheet(f"background: {PRIMARY}; color: white; border: none;")
+        close_btn.setProperty("variant", "secondary")
         close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(close_btn)
         

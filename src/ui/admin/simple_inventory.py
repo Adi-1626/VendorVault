@@ -26,8 +26,9 @@ RED = DANGER
 class SimpleInventoryWindow(QMainWindow):
     """Simple barcode-based inventory - Dark Mode."""
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, embedded: bool = False):
         super().__init__(parent)
+        self.embedded = embedded  # True when shown inside the admin dashboard
         self.current_product_id = None
         self.setup_ui()
         self.load_products()
@@ -38,70 +39,6 @@ class SimpleInventoryWindow(QMainWindow):
         self.setWindowTitle("Inventory Management")
         self.setMinimumSize(1100, 700)
         
-        # Dark stylesheet
-        self.setStyleSheet(f"""
-            QMainWindow, QWidget {{
-                background-color: {BG};
-                color: {WHITE};
-            }}
-            QLabel {{
-                color: {WHITE};
-                font-size: 14px;
-            }}
-            QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
-                background-color: {CARD};
-                color: {WHITE};
-                border: 2px solid {BORDER};
-                border-radius: 6px;
-                padding: 10px 12px;
-                font-size: 14px;
-                min-height: 20px;
-            }}
-            QLineEdit:focus {{
-                border-color: {BLUE};
-            }}
-            QPushButton {{
-                background-color: {CARD};
-                color: {WHITE};
-                border: 2px solid {BORDER};
-                border-radius: 6px;
-                padding: 8px 14px;
-                font-size: 13px;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: {BORDER};
-            }}
-            QTableWidget {{
-                background-color: {CARD};
-                color: {WHITE};
-                border: 2px solid {BORDER};
-                border-radius: 8px;
-                font-size: 13px;
-                gridline-color: {BORDER};
-            }}
-            QTableWidget::item {{
-                padding: 6px;
-                color: {WHITE};
-            }}
-            QHeaderView::section {{
-                background-color: {BG};
-                color: {GRAY};
-                padding: 8px;
-                border: none;
-                font-size: 12px;
-                font-weight: bold;
-            }}
-            QFrame {{
-                background-color: {CARD};
-                border: 2px solid {BORDER};
-                border-radius: 10px;
-            }}
-            QStatusBar {{
-                background-color: {CARD};
-                color: {GRAY};
-            }}
-        """)
         
         central = QWidget()
         self.setCentralWidget(central)
@@ -112,14 +49,15 @@ class SimpleInventoryWindow(QMainWindow):
         
         # Header
         header = QHBoxLayout()
-        title = QLabel("📦 INVENTORY MANAGEMENT")
-        title.setStyleSheet(f"color: {BLUE}; font-size: 22px; font-weight: bold;")
+        title = QLabel("Inventory")
+        title.setProperty("role", "h1")
         header.addWidget(title)
         header.addStretch()
         
-        close_btn = QPushButton("✕ Close")
-        close_btn.setStyleSheet(f"background: {RED}; color: white; border: none;")
+        close_btn = QPushButton("Close")
+        close_btn.setProperty("variant", "secondary")
         close_btn.clicked.connect(self.close)
+        close_btn.setVisible(not self.embedded)
         header.addWidget(close_btn)
         layout.addLayout(header)
         
@@ -129,24 +67,19 @@ class SimpleInventoryWindow(QMainWindow):
         
         # === LEFT: Form ===
         form_frame = QFrame()
+        form_frame.setProperty("card", "true")
         form_lyt = QVBoxLayout(form_frame)
         form_lyt.setContentsMargins(20, 15, 20, 15)
         form_lyt.setSpacing(12)
         
-        form_title = QLabel("📲 SCAN BARCODE TO ADD/EDIT")
-        form_title.setStyleSheet(f"color: {BLUE}; font-size: 14px; font-weight: bold; border: none;")
+        form_title = QLabel("Scan a barcode to add or edit")
+        form_title.setProperty("role", "h3")
         form_lyt.addWidget(form_title)
         
         # Barcode
         self.barcode_input = QLineEdit()
         self.barcode_input.setPlaceholderText("Scan barcode here...")
-        self.barcode_input.setStyleSheet(f"""
-            QLineEdit {{
-                border: 3px solid {BLUE};
-                font-size: 18px;
-                padding: 14px;
-            }}
-        """)
+        self.barcode_input.setProperty("size", "lg")
         self.barcode_input.returnPressed.connect(self.lookup_barcode)
         form_lyt.addWidget(self.barcode_input)
         
@@ -156,7 +89,7 @@ class SimpleInventoryWindow(QMainWindow):
         fields.setLabelAlignment(Qt.AlignRight)
         
         # Explicit label style
-        lbl_style = f"color: {WHITE}; font-size: 14px; font-weight: bold; background: transparent; border: none;"
+        lbl_style = f"color: {GRAY};"
         
         name_lbl = QLabel("Product Name:")
         name_lbl.setStyleSheet(lbl_style)
@@ -168,13 +101,12 @@ class SimpleInventoryWindow(QMainWindow):
         price_lbl = QLabel("Prices:")
         price_lbl.setStyleSheet(lbl_style)
         price_widget = QWidget()
-        price_widget.setStyleSheet("background: transparent; border: none;")
         price_lyt = QHBoxLayout(price_widget)
         price_lyt.setContentsMargins(0, 0, 0, 0)
         price_lyt.setSpacing(15)
         
         mrp_lbl = QLabel("MRP ₹:")
-        mrp_lbl.setStyleSheet(f"color: {WHITE}; background: transparent; border: none;")
+        mrp_lbl.setStyleSheet(f"color: {GRAY};")
         self.mrp_input = QDoubleSpinBox()
         self.mrp_input.setMaximum(99999)
         self.mrp_input.setDecimals(2)
@@ -183,7 +115,7 @@ class SimpleInventoryWindow(QMainWindow):
         price_lyt.addWidget(self.mrp_input)
         
         cost_lbl = QLabel("Cost ₹:")
-        cost_lbl.setStyleSheet(f"color: {WHITE}; background: transparent; border: none;")
+        cost_lbl.setStyleSheet(f"color: {GRAY};")
         self.cost_input = QDoubleSpinBox()
         self.cost_input.setMaximum(99999)
         self.cost_input.setDecimals(2)
@@ -198,7 +130,6 @@ class SimpleInventoryWindow(QMainWindow):
         stock_lbl = QLabel("Stock:")
         stock_lbl.setStyleSheet(lbl_style)
         stock_widget = QWidget()
-        stock_widget.setStyleSheet("background: transparent; border: none;")
         stock_lyt = QHBoxLayout(stock_widget)
         stock_lyt.setContentsMargins(0, 0, 0, 0)
         stock_lyt.setSpacing(15)
@@ -209,7 +140,7 @@ class SimpleInventoryWindow(QMainWindow):
         stock_lyt.addWidget(self.stock_input)
         
         cat_lbl = QLabel("Category:")
-        cat_lbl.setStyleSheet(f"color: {WHITE}; background: transparent; border: none;")
+        cat_lbl.setStyleSheet(f"color: {GRAY};")
         stock_lyt.addWidget(cat_lbl)
         self.category_input = QComboBox()
         self.category_input.setEditable(True)
@@ -224,27 +155,24 @@ class SimpleInventoryWindow(QMainWindow):
         
         # Status
         self.status_label = QLabel("")
-        self.status_label.setStyleSheet(f"color: {GREEN}; font-size: 13px; font-weight: bold; border: none;")
+        self.status_label.setStyleSheet(f"color: {GREEN}; font-size: 13px; font-weight: 500;")
         form_lyt.addWidget(self.status_label)
         
         # Buttons - Even widths
         btn_row = QHBoxLayout()
         btn_row.setSpacing(10)
         
-        btn_style = "color: white; border: none; padding: 12px 20px; font-size: 14px; font-weight: bold; min-width: 120px;"
-        
-        save_btn = QPushButton("💾 SAVE PRODUCT")
-        save_btn.setStyleSheet(f"background: {GREEN}; {btn_style}")
+        save_btn = QPushButton("Save product")
+        save_btn.setProperty("variant", "primary")
         save_btn.clicked.connect(self.save_product)
         btn_row.addWidget(save_btn)
         
-        new_btn = QPushButton("🔄 NEW")
-        new_btn.setStyleSheet(f"background: {BLUE}; {btn_style}")
+        new_btn = QPushButton("New")
         new_btn.clicked.connect(self.clear_form)
         btn_row.addWidget(new_btn)
         
-        del_btn = QPushButton("🗑 DELETE")
-        del_btn.setStyleSheet(f"background: {RED}; {btn_style}")
+        del_btn = QPushButton("Delete")
+        del_btn.setProperty("variant", "danger")
         del_btn.clicked.connect(self.delete_product)
         btn_row.addWidget(del_btn)
         
@@ -253,13 +181,13 @@ class SimpleInventoryWindow(QMainWindow):
         # Quick stock
         quick_row = QHBoxLayout()
         quick_row.setSpacing(8)
-        quick_lbl = QLabel("Quick Stock +")
-        quick_lbl.setStyleSheet(f"color: {GRAY}; border: none;")
+        quick_lbl = QLabel("Quick stock +")
+        quick_lbl.setStyleSheet(f"color: {GRAY};")
         quick_row.addWidget(quick_lbl)
         
         for qty in [1, 5, 10, 50]:
             btn = QPushButton(f"+{qty}")
-            btn.setStyleSheet(f"padding: 6px 12px;")
+            btn.setProperty("size", "sm")
             btn.clicked.connect(lambda _, q=qty: self.quick_add_stock(q))
             quick_row.addWidget(btn)
         quick_row.addStretch()
@@ -270,12 +198,13 @@ class SimpleInventoryWindow(QMainWindow):
         
         # === RIGHT: Product List ===
         list_frame = QFrame()
+        list_frame.setProperty("card", "true")
         list_lyt = QVBoxLayout(list_frame)
         list_lyt.setContentsMargins(15, 15, 15, 15)
         list_lyt.setSpacing(10)
         
-        list_title = QLabel("📋 ALL PRODUCTS")
-        list_title.setStyleSheet(f"color: {BLUE}; font-size: 14px; font-weight: bold; border: none;")
+        list_title = QLabel("All products")
+        list_title.setProperty("role", "h3")
         list_lyt.addWidget(list_title)
         
         self.search_input = QLineEdit()
@@ -325,7 +254,7 @@ class SimpleInventoryWindow(QMainWindow):
                 self.category_input.setCurrentText(cat)
             
             self.status_label.setText(f"✓ Found: {p['name']}")
-            self.status_label.setStyleSheet(f"color: {GREEN}; font-size: 13px; font-weight: bold; border: none;")
+            self.status_label.setStyleSheet(f"color: {GREEN}; font-size: 13px; font-weight: 500;")
             self.name_input.setFocus()
         else:
             self.current_product_id = None
@@ -335,8 +264,8 @@ class SimpleInventoryWindow(QMainWindow):
             self.stock_input.setValue(0)
             self.category_input.setCurrentIndex(0)
             
-            self.status_label.setText(f"➕ New barcode: {barcode}")
-            self.status_label.setStyleSheet(f"color: {BLUE}; font-size: 13px; font-weight: bold; border: none;")
+            self.status_label.setText(f"New barcode: {barcode}")
+            self.status_label.setStyleSheet(f"color: {BLUE}; font-size: 13px; font-weight: 500;")
             self.name_input.setFocus()
     
     def save_product(self):

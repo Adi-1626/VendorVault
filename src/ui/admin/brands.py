@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
-from src.ui.dark_theme import get_dark_stylesheet, PRIMARY, SUCCESS, DANGER, TEXT_WHITE, TEXT_GRAY
+from src.ui.dark_theme import PRIMARY, SUCCESS, DANGER, TEXT_WHITE, TEXT_GRAY
 
 
 class BrandManagementWindow(QMainWindow):
@@ -23,7 +23,6 @@ class BrandManagementWindow(QMainWindow):
         """Set up dark mode UI."""
         self.setWindowTitle("Brand Management")
         self.setGeometry(150, 150, 900, 600)
-        self.setStyleSheet(get_dark_stylesheet())
         
         central = QWidget()
         self.setCentralWidget(central)
@@ -34,7 +33,7 @@ class BrandManagementWindow(QMainWindow):
         
         # Header
         header = QLabel("Brand Management")
-        header.setStyleSheet(f"color: {PRIMARY}; font-size: 28px; font-weight: bold;")
+        header.setProperty("role", "h1")
         layout.addWidget(header)
         
         # Search and actions
@@ -42,7 +41,7 @@ class BrandManagementWindow(QMainWindow):
         search_layout.setSpacing(15)
         
         search_label = QLabel("Search:")
-        search_label.setStyleSheet(f"color: {TEXT_WHITE}; font-size: 16px; font-weight: bold;")
+        search_label.setProperty("role", "muted")
         search_layout.addWidget(search_label)
         
         self.search_input = QLineEdit()
@@ -53,8 +52,8 @@ class BrandManagementWindow(QMainWindow):
         
         search_layout.addStretch()
         
-        add_btn = QPushButton("➕ Add Brand")
-        add_btn.setStyleSheet(f"background: {SUCCESS}; color: white; border: none;")
+        add_btn = QPushButton("Add Brand")
+        add_btn.setProperty("variant", "primary")
         add_btn.clicked.connect(self.add_brand)
         search_layout.addWidget(add_btn)
         
@@ -103,13 +102,14 @@ class BrandManagementWindow(QMainWindow):
             
             edit_btn = QPushButton("Edit")
             edit_btn.setCursor(Qt.PointingHandCursor)
-            edit_btn.setStyleSheet(f"background: {PRIMARY}; color: white; border: none; padding: 4px 10px; border-radius: 4px;")
+            edit_btn.setProperty("size", "sm")
             edit_btn.clicked.connect(lambda checked, b=brand: self.edit_brand(b))
             action_layout.addWidget(edit_btn)
             
             delete_btn = QPushButton("Delete")
             delete_btn.setCursor(Qt.PointingHandCursor)
-            delete_btn.setStyleSheet(f"background: {DANGER}; color: white; border: none; padding: 4px 10px; border-radius: 4px;")
+            delete_btn.setProperty("size", "sm")
+            delete_btn.setProperty("variant", "danger")
             delete_btn.clicked.connect(lambda checked, b=brand: self.delete_brand(b))
             action_layout.addWidget(delete_btn)
             
@@ -183,7 +183,6 @@ class BrandDialog(QDialog):
         """Setup dark UI."""
         self.setWindowTitle("Add Brand" if not self.brand else "Edit Brand")
         self.setMinimumWidth(500)
-        self.setStyleSheet(get_dark_stylesheet())
         
         layout = QFormLayout()
         layout.setContentsMargins(25, 25, 25, 25)
@@ -207,12 +206,12 @@ class BrandDialog(QDialog):
         btn_layout.setSpacing(10)
         
         save_btn = QPushButton("Save")
-        save_btn.setStyleSheet(f"background: {SUCCESS}; color: white; border: none;")
+        save_btn.setProperty("variant", "primary")
         save_btn.clicked.connect(self.validate_and_accept)
         btn_layout.addWidget(save_btn)
         
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.setStyleSheet(f"background: {DANGER}; color: white; border: none;")
+        cancel_btn.setProperty("variant", "secondary")
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
         

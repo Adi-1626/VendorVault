@@ -10,6 +10,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from src.logic.inventory import InventoryService
 from src.models.product import Product
+from src.ui import theme as T
 
 
 class InventoryWindow(QMainWindow):
@@ -34,7 +35,7 @@ class InventoryWindow(QMainWindow):
         
         # Header
         header = QLabel("Inventory Management")
-        header.setProperty("heading", True)
+        header.setProperty("role", "h1")
         layout.addWidget(header)
         
         # Search and Actions
@@ -47,20 +48,8 @@ class InventoryWindow(QMainWindow):
         search_layout.addStretch()
         
         # Add Product button
-        add_btn = QPushButton("➕ Add Product")
-        add_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #10B981;
-                color: white;
-                padding: 8px 16px;
-                font-size: 14px;
-                font-weight: 600;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #059669;
-            }
-        """)
+        add_btn = QPushButton("Add Product")
+        add_btn.setProperty("variant", "primary")
         add_btn.clicked.connect(self.show_add_product_message)
         search_layout.addWidget(add_btn)
         
@@ -84,21 +73,6 @@ class InventoryWindow(QMainWindow):
         
         # Increase row height and font size for better visibility
         self.table.verticalHeader().setDefaultSectionSize(60)  # Increased to 60px for editing
-        self.table.setStyleSheet("""
-            QTableWidget {
-                font-size: 15px;
-                gridline-color: #E5E7EB;
-            }
-            QTableWidget::item {
-                padding: 12px;
-                height: 60px;
-                border-bottom: 1px solid #F3F4F6;
-            }
-            QTableWidget::item:selected {
-                background-color: #EBF5FF;
-                color: #000000;
-            }
-        """)
         
         layout.addWidget(self.table)
         
@@ -119,11 +93,11 @@ class InventoryWindow(QMainWindow):
             # Stock with color coding
             stock_item = QTableWidgetItem(str(int(product.stock)))
             if product.stock < 10:
-                stock_item.setForeground(QColor("#EF4444"))  # Red
+                stock_item.setForeground(QColor(T.DANGER))
             elif product.stock < 50:
-                stock_item.setForeground(QColor("#F59E0B"))  # Orange
+                stock_item.setForeground(QColor(T.WARNING))
             else:
-                stock_item.setForeground(QColor("#10B981"))  # Green
+                stock_item.setForeground(QColor(T.SUCCESS))
             self.table.setItem(idx, 4, stock_item)
             
             self.table.setItem(idx, 5, QTableWidgetItem(f"₹{product.mrp:.2f}"))
