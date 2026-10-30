@@ -1,16 +1,14 @@
 """
 Admin dashboard: sidebar navigation + Overview page.
 
-The existing admin screens (invoices, inventory, brands, product types,
-analytics, employees) are embedded as pages in a stacked widget; each one
-is created fresh when opened, exactly like the old "open window" buttons,
-so they always show current data. All data reads go through the existing
-services (BillingService, AnalyticsService, InventoryService,
-AnalyticsEngine) plus one read-only query for POS stock levels.
+The admin screens (sales & invoices, inventory, analytics, team) are
+embedded as pages in a stacked widget; each one is created fresh when
+opened so it always shows current data. Overview is *today's* snapshot;
+the Analytics page is the deep dive (ranges, comparisons, exports).
+Everything reads the POS tables (``bill`` + ``simple_products``).
 """
 from __future__ import annotations
 
-import csv
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import Callable, Dict, List, Optional, Tuple
@@ -18,8 +16,8 @@ from typing import Callable, Dict, List, Optional, Tuple
 from PySide6.QtCore import QEvent, QObject, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
-    QComboBox, QFileDialog, QFrame, QGridLayout, QHBoxLayout, QMainWindow, QMessageBox,
-    QPushButton, QScrollArea, QStackedWidget, QStatusBar, QTabWidget, QVBoxLayout, QWidget,
+    QFrame, QGridLayout, QHBoxLayout, QMainWindow,
+    QPushButton, QScrollArea, QStackedWidget, QStatusBar, QVBoxLayout, QWidget,
 )
 
 import config
@@ -27,7 +25,6 @@ from src.database.connection import db
 from src.logic.analytics import AnalyticsService
 from src.logic.billing import BillingService
 from src.logic.employee_mgmt import EmployeeService
-from src.logic.inventory import InventoryService
 from src.models.employee import Employee
 from src.ui import theme as T
 from src.ui.colors import *  # noqa: F401,F403  (legacy names)
@@ -48,7 +45,6 @@ RED = T.DANGER
 PURPLE = T.ACCENT
 
 LOW_STOCK_THRESHOLD = 10
-RANGES = ["Today", "Yesterday", "Last 7 days", "Last 30 days"]
 
 
 # ---------------------------------------------------------------------------
@@ -97,29 +93,18 @@ def fmt_hour_long(h: int) -> str:
 
 
 def pos_low_stock(threshold: int = LOW_STOCK_THRESHOLD) -> List[Dict]:
-    """Low-stock items from the POS catalogue (simple_products) and the
-    variant inventory (views_inventory_health / reorder levels)."""
+    """Low-stock items from the POS catalogue (simple_products), lowest first."""
     items: List[Dict] = []
     try:
         rows = db.execute_query(
-            "SELECT name, category, stock FROM simple_products WHERE is_active = 1 AND stock <= ? ORDER BY stock ASC",
+            "SELECT name, category, stock FROM simple_products WHERE is_active = 1 AND stock <= ? "
+            "ORDER BY stock ASC, name",
             (threshold,))
         for r in rows:
             items.append({'name': r['name'], 'category': r.get('category') or '—',
                           'stock': int(r['stock'] or 0), 'reorder': threshold})
     except Exception as e:  # noqa: BLE001
-        print(f"Overview: simple_products low stock unavailable: {e}")
-    try:
-        from src.logic.analytics_engine import AnalyticsEngine
-        for r in AnalyticsEngine().inventory.get_low_stock_items(limit=20):
-            name = r.get('product_name') or ''
-            if r.get('variant_name'):
-                name = f"{name} {r['variant_name']}"
-            items.append({'name': name, 'category': r.get('product_type') or '—',
-                          'stock': int(r.get('stock_quantity') or 0), 'reorder': int(r.get('reorder_level') or 0)})
-    except Exception as e:  # noqa: BLE001
-        print(f"Overview: variant low stock unavailable: {e}")
-    items.sort(key=lambda x: (x['stock'] / x['reorder']) if x['reorder'] else x['stock'])
+        print(f"Overview: low stock unavailable: {e}")
     return items
 
 
@@ -223,17 +208,13 @@ class OverviewPage(QWidget):
         titles.addWidget(self.greeting)
         titles.addWidget(self.subtitle)
         head.addLayout(titles, 1)
-        self.range_combo = QComboBox()
-        self.range_combo.addItems(RANGES)
-        self.range_combo.setFixedSize(180, 36)
-        self.range_combo.currentTextChanged.connect(lambda _t: self.refresh())
-        head.addWidget(self.range_combo, 0, Qt.AlignTop)
-        head.addSpacing(8)
-        self.export_btn = make_button("Export", variant="light")
-        self.export_btn.setFixedSize(88, 36)
-        self.export_btn.setToolTip("Export the bills in this range to CSV")
-        self.export_btn.clicked.connect(self.export_csv)
-        head.addWidget(self.export_btn, 0, Qt.AlignTop)
+        # Overview is today's snapshot; date ranges, comparisons and exports
+        # live on the Analytics page (no duplicated controls).
+        self.analytics_btn = make_button("Open analytics  →", variant="light")
+        self.analytics_btn.setFixedHeight(36)
+        self.analytics_btn.setToolTip("Trends, peak hours, margins and stock health for any date range")
+        self.analytics_btn.clicked.connect(lambda: self.on_navigate("analytics"))
+        head.addWidget(self.analytics_btn, 0, Qt.AlignTop)
         lay.addLayout(head)
         lay.addSpacing(10)
 
@@ -303,9 +284,8 @@ class OverviewPage(QWidget):
         part = "morning" if now.hour < 12 else "afternoon" if now.hour < 17 else "evening"
         first = (self.admin.first_name or self.admin.get_full_name()).strip()
         self.greeting.setText(f"Good {part}, {first}")
-        label = self.range_combo.currentText()
-        scope = {"Today": "today", "Yesterday": "yesterday"}.get(label, label.lower())
-        self.subtitle.setText(f"{now.strftime('%A, %d %B').replace(' 0', ' ')} · Here's how the store is doing {scope}.")
+        label = "Today"
+        self.subtitle.setText(f"{now.strftime('%A, %d %B').replace(' 0', ' ')} · Here's how the store is doing today.")
 
         start, end = range_bounds(label)
         pstart, pend = previous_bounds(label, start, end)
@@ -443,25 +423,6 @@ class OverviewPage(QWidget):
         self.low_grid.setColumnStretch(3, 2)
         self.low_grid.setColumnStretch(4, 3)
 
-    def export_csv(self) -> None:
-        label = self.range_combo.currentText()
-        start, end = range_bounds(label)
-        default = f"vendorvault-bills-{start.isoformat()}" + ("" if start == end else f"-to-{end.isoformat()}") + ".csv"
-        path, _ = QFileDialog.getSaveFileName(self, "Export bills", default, "CSV files (*.csv)")
-        if not path:
-            return
-        bills = self._bills(start, end)
-        try:
-            with open(path, "w", newline="", encoding="utf-8") as fh:
-                w = csv.writer(fh)
-                w.writerow(["Bill No", "Date", "Customer", "Phone", "Subtotal", "Discount", "Tax rate", "Tax", "Total"])
-                for b in bills:
-                    w.writerow([b.bill_no, b.date, b.customer_name, b.customer_no, f"{b.subtotal:.2f}",
-                                f"{b.discount:.2f}", b.tax_rate, f"{b.tax_amount:.2f}", f"{b.total:.2f}"])
-            QMessageBox.information(self, "Export", f"Exported {len(bills)} bills to\n{path}")
-        except OSError as e:
-            QMessageBox.critical(self, "Export failed", str(e))
-
 
 # ---------------------------------------------------------------------------
 # Main window
@@ -473,8 +434,6 @@ class AdminDashboard(QMainWindow):
         ("overview", "Overview"),
         ("invoices", "Sales && invoices"),
         ("inventory", "Inventory"),
-        ("products", "Products && brands"),
-        ("types", "Product types"),
         ("analytics", "Analytics"),
         ("team", "Team"),
     ]
@@ -482,7 +441,6 @@ class AdminDashboard(QMainWindow):
     def __init__(self, admin: Employee):
         super().__init__()
         self.admin = admin
-        self.inventory_service = InventoryService()
         self.employee_service = EmployeeService()
         self.billing_service = BillingService()
         self._pages: Dict[str, QWidget] = {}
@@ -572,8 +530,6 @@ class AdminDashboard(QMainWindow):
             "overview": self.show_overview,
             "invoices": self.open_invoices,
             "inventory": self.open_inventory,
-            "products": self.open_brands,
-            "types": self.open_product_types,
             "analytics": self.open_analytics,
             "team": self.open_employees,
         }
@@ -617,28 +573,6 @@ class AdminDashboard(QMainWindow):
         from src.ui.admin.simple_inventory import SimpleInventoryWindow
         self.inv_window = self._embed("inventory", SimpleInventoryWindow(self, embedded=True))
 
-    def open_brands(self) -> None:
-        """Products & brands: product catalogue (with the product dialog) and brands."""
-        from src.ui.admin.brands import BrandManagementWindow
-        from src.ui.admin.inventory import InventoryWindow
-        page = QWidget()
-        lay = QVBoxLayout(page)
-        lay.setContentsMargins(24, 20, 24, 20)
-        tabs = QTabWidget()
-        self.brands_window = BrandManagementWindow(self)
-        self.products_window = InventoryWindow(self)
-        for w in (self.brands_window, self.products_window):
-            w.setWindowFlags(Qt.Widget)
-        tabs.addTab(self.brands_window, "Brands")
-        tabs.addTab(self.products_window, "Products")
-        lay.addWidget(tabs)
-        self.products_tabs = tabs
-        self._embed("products", page)
-
-    def open_product_types(self) -> None:
-        from src.ui.admin.product_types import ProductTypeManagementWindow
-        self.types_window = self._embed("types", ProductTypeManagementWindow(self))
-
     def open_employees(self) -> None:
         from src.ui.admin.employees import EmployeeWindow
         self.emp_window = self._embed("team", EmployeeWindow(self))
@@ -648,8 +582,8 @@ class AdminDashboard(QMainWindow):
         self.invoices_window = self._embed("invoices", InvoicesWindow(self))
 
     def open_analytics(self) -> None:
-        from src.ui.admin.analytics_dashboard import EnterpriseDashboard
-        self.analytics_window = self._embed("analytics", EnterpriseDashboard(self, embedded=True))
+        from src.ui.admin.analytics import AnalyticsPage
+        self.analytics_window = self._embed("analytics", AnalyticsPage(self, on_navigate=self.navigate))
 
     # ------------------------------------------------------------ data
     def update_time(self) -> None:

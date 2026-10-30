@@ -20,6 +20,7 @@ REPO = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).reso
 OUT = Path(os.environ.get("VV_SCREENSHOT_DIR", REPO / "_dev" / "screenshots"))
 OUT.mkdir(parents=True, exist_ok=True)
 sys.path.insert(0, str(REPO))
+sys.path.insert(0, str(REPO / "tests"))
 
 real_db = REPO / "data" / "store.db"
 real_md5 = hashlib.md5(real_db.read_bytes()).hexdigest()
@@ -35,7 +36,7 @@ config.GENERATED_BILLS_DIR.mkdir()
 from PySide6.QtCore import Qt, QTimer  # noqa: E402
 from PySide6.QtGui import QKeyEvent  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
-from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QDialog  # noqa: E402
+from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QDialog, QLabel  # noqa: E402
 
 app = QApplication(sys.argv)
 from src.ui.theme import apply_theme  # noqa: E402
@@ -331,13 +332,13 @@ dash.resize(1440, 900)
 settle(200)
 check("overview KPIs", dash.overview.kpi_bills.value.text().isdigit(), dash.overview.kpi_bills.value.text())
 shot(dash, "admin_overview")
-for key in ["invoices", "inventory", "products", "types", "analytics", "team"]:
+for key in ["invoices", "inventory", "analytics", "team"]:
     def go(k=key):
         dash.navigate(k)
         settle(200)
         assert dash.stack.currentWidget() is dash._pages[k]
         if k == "analytics":
-            QTest.qWait(600)
+            assert dash._pages[k].wait_until_loaded()
             settle(200)
         shot(dash, f"admin_{k}")
     step(f"admin page {key}", go)
@@ -347,27 +348,25 @@ settle()
 dash._pages["inventory"].close()
 settle()
 check("embedded close returns to overview", dash.current_page == "overview")
-for rng in ["Yesterday", "Last 7 days", "Last 30 days", "Today"]:
-    step(f"overview range {rng}", lambda r=rng: dash.overview.range_combo.setCurrentText(r))
-dash.overview.range_combo.setCurrentText("Last 30 days")
+check("nav has one inventory, no legacy catalogue pages",
+      list(dash._nav_buttons) == ["overview", "invoices", "inventory", "analytics", "team"], str(list(dash._nav_buttons)))
+check("overview is a today snapshot (no range picker)", not hasattr(dash.overview, "range_combo"))
+dash.overview.analytics_btn.click()
 settle()
-shot(dash, "admin_overview_30d")
-dash.overview.range_combo.setCurrentText("Today")
+check("overview 'Open analytics' navigates", dash.current_page == "analytics")
+dash.navigate("invoices")
+settle()
 QFileDialog.getSaveFileName = staticmethod(lambda *a, **k: (str(tmpdir / "export.csv"), ""))
-dash.overview.export_csv()
-check("export csv", (tmpdir / "export.csv").exists())
+dash._pages["invoices"].export_csv()
+check("invoices export csv", (tmpdir / "export.csv").exists() and
+      len((tmpdir / "export.csv").read_text().splitlines()) == len(db.execute_query("SELECT bill_no FROM bill")) + 1)
 
 # dialogs
 def dialogs():
-    from src.ui.admin.brands import BrandDialog
     from src.ui.admin.employees import EmployeeDialog
-    from src.ui.admin.product_types import ProductTypeDialog
-    from src.ui.admin.product_dialog import ProductDialog, VariantDialog
     from src.ui.admin.invoices import BillViewDialog
     from src.logic.billing import BillingService
-    for name, d in [("brand_dialog", BrandDialog(dash)), ("employee_dialog", EmployeeDialog(dash)),
-                    ("product_type_dialog", ProductTypeDialog(dash)), ("product_dialog", ProductDialog(dash)),
-                    ("variant_dialog", VariantDialog(dash, "Test")),
+    for name, d in [("employee_dialog", EmployeeDialog(dash)),
                     ("bill_view_dialog", BillViewDialog(dash, BillingService().search_bills()[0]))]:
         d.show()
         settle()
@@ -375,11 +374,30 @@ def dialogs():
         d.close()
 step("all admin dialogs instantiate", dialogs)
 
-def legacy_analytics():
-    from src.ui.admin.analytics import ModernAnalyticsWindow
-    w = ModernAnalyticsWindow()
-    w.close()
-step("legacy ModernAnalyticsWindow still instantiates", legacy_analytics)
+# ---------------------------------------------------------------- inventory page
+def inventory_page():
+    dash.navigate("inventory")
+    settle()
+    inv = dash._pages["inventory"]
+    cats = [inv.category_input.itemText(i) for i in range(inv.category_input.count())]
+    db_cats = {r["category"] for r in db.execute_query("SELECT DISTINCT category FROM simple_products") if r["category"]}
+    assert db_cats <= set(cats), (db_cats, cats)
+    assert cats[:3] == ["Namkeen", "Biscuits", "Chips"], cats
+    assert len(cats) == len({c.lower() for c in cats}), cats
+    n_all = inv.product_table.rowCount()
+    inv.stock_filter.setCurrentText("Low stock")
+    low = inv.product_table.rowCount()
+    inv.stock_filter.setCurrentText("All stock")
+    assert low <= n_all and inv.product_table.rowCount() == n_all
+    inv.search_input.setText("Parle")
+    assert inv.product_table.rowCount() >= 1 and "Parle" in inv.product_table.item(0, 1).text()
+    inv.search_input.setText("")
+    inv.barcode_input.setText(inv.product_table.item(0, 0).text())
+    inv.lookup_barcode()
+    assert inv.current_product_id is not None and inv.del_btn.isEnabled()
+    inv.clear_form()
+step("inventory: categories from DB + filters + lookup", inventory_page)
+shot(dash, "admin_inventory")
 
 # switch modes
 def switch():
@@ -394,6 +412,159 @@ def switch():
     settle()
     assert dash.billing_window.login_window.isVisible()
 step("switch admin<->POS and logout", switch)
+
+# ---------------------------------------------------------------- analytics
+from datetime import date as _date, timedelta as _td  # noqa: E402
+from src.logic import analytics_engine as AE  # noqa: E402
+from src.ui.admin.analytics.fmt import inr, inr_compact  # noqa: E402
+
+check("engine: delta prev=0 → New/—", AE.delta(5, 0).text == "New" and AE.delta(0, 0).text == "—"
+      and AE.delta(110, 100).text == "+10.0%" and AE.delta(90, 100).tone == "danger")
+check("fmt: Indian grouping", inr(123456) == "₹1,23,456" and inr(1234567.5, 2) == "₹12,34,567.50"
+      and inr(999) == "₹999" and inr_compact(250000) == "₹2.5L", f"{inr(123456)} {inr(1234567.5, 2)} {inr_compact(250000)}")
+check("engine: parse bill_details", [(i.name, i.qty, i.amount) for i in AE.parse_bill_details("A\t\t2\t\t10.00\nbad\nB C\t\t1\t\t5")]
+      == [("A", 2, 10.0), ("B C", 1, 5.0)])
+_p = AE.preset_period("30D", _date(2026, 3, 31))
+check("engine: periods & buckets", _p.days == 30 and AE.previous_period(_p).end == _date(2026, 3, 1)
+      and AE.bucket_for(AE.preset_period("Today")) == "hour" and AE.bucket_for(AE.preset_period("This year", _date(2026, 10, 30))) == "week"
+      and AE.previous_period(AE.preset_period("This year", _date(2026, 10, 30)), "This year").start == _date(2025, 1, 1))
+_cat = {"A": AE.CatalogItem(1, "1", "A", "X", 10, 0, 5, True)}
+_b = [AE.BillRow("b1", _date.today(), None, 11.8, 10, 0, 1.8, [AE.LineItem("A", 1, 10)])]
+check("engine: no cost price → gross profit None", AE.summarize(_b, _cat).gross_profit is None)
+_cat["A"] = AE.CatalogItem(1, "1", "A", "X", 10, 6, 5, True)
+check("engine: gross profit with cost", abs(AE.summarize(_b, _cat).gross_profit - 4) < 1e-9)
+
+from PySide6.QtWidgets import QAbstractScrollArea  # noqa: E402
+from src.ui.admin.analytics import AnalyticsPage  # noqa: E402
+from analytics_seed import seed  # noqa: E402
+
+base_db_path = db.db_path
+
+
+def use_db(path):
+    db.db_path = str(path)
+
+
+def nested_scrolls(page):
+    """Scroll areas inside the page other than the outer one (popups excluded)."""
+    bad = []
+    for sa in page.findChildren(QAbstractScrollArea):
+        if sa is page.scroll or sa.window() is not page.window():
+            continue
+        bad.append(type(sa).__name__)
+    return bad
+
+
+AN_OUT = Path(os.environ.get("VV_ANALYTICS_SHOTS", OUT))
+AN_OUT.mkdir(parents=True, exist_ok=True)
+
+# Empty DB (no bills) → empty states
+empty_db = tmpdir / "empty.db"
+shutil.copy(real_db, empty_db)
+import sqlite3  # noqa: E402
+_c = sqlite3.connect(empty_db); _c.execute("DELETE FROM bill"); _c.commit(); _c.close()
+use_db(empty_db)
+ep = AnalyticsPage()
+ep.showNormal(); ep.resize(1208, 900)
+check("analytics empty: loads", ep.wait_until_loaded() and ep.snapshot is not None)
+settle(100)
+check("analytics empty: KPIs zero, profit —", ep.kpis["revenue"].value.text() == "₹0" and ep.kpis["profit"].value.text() == "—",
+      f"{ep.kpis['revenue'].value.text()} {ep.kpis['profit'].value.text()}")
+check("analytics empty: no '100%' growth or margin anywhere",
+      not any("100.0%" in l.text() for l in ep.findChildren(QLabel)))
+ep.grab().save(str(AN_OUT / "analytics_empty.png"))
+ep.close()
+
+# Seeded copy (~90 days of synthetic bills) → meaningful charts
+seeded_db = tmpdir / "seeded.db"
+shutil.copy(real_db, seeded_db)
+n_seed = seed(seeded_db, 90)
+use_db(seeded_db)
+ap = AnalyticsPage()
+ap.showNormal(); ap.resize(1208, 900)
+check("analytics seeded: async load", ap.wait_until_loaded() and ap.snapshot.summary.bills > 500, f"{n_seed} seeded")
+settle(100)
+s30 = ap.snapshot
+check("analytics: revenue = sum of bill totals", abs(s30.summary.revenue - sum(s30.revenue_series)) < 0.01)
+check("analytics: gross profit shown", ap.kpis["profit"].value.text().startswith("₹"), ap.kpis["profit"].value.text())
+check("analytics: 30D daily buckets", s30.bucket == "day" and len(s30.revenue_series) == 30)
+check("analytics: categories from simple_products", {c.category for c in s30.categories} - {"Other"} <= 
+      {r["category"] for r in db.execute_query("SELECT category FROM simple_products")})
+check("analytics: no legacy catalogue names", not any(t.name in ("Shev", "d1", "Test Product") for t in s30.top_products))
+check("analytics: heatmap has a peak", ap.heatmap.peak() is not None)
+check("analytics: restock + slow movers", len(s30.inventory.attention) > 0 and len(s30.slow_movers) > 0)
+check("analytics: below-cost item flagged", any(m.name == "Vaseline" for m in s30.below_cost))
+for preset in AE.PRESETS[:-1]:
+    def run(pr=preset):
+        ap.set_preset(pr, blocking=True)
+        settle(20)
+        sn = ap.snapshot
+        assert sn.preset == pr and len(sn.revenue_series) == len(sn.labels) == len(sn.prev_revenue_series)
+        assert sn.bucket == {"Today": "hour", "7D": "day", "30D": "day", "90D": "day", "This year": "week"}[pr]
+        assert not nested_scrolls(ap), nested_scrolls(ap)
+    step(f"analytics range {preset}", run)
+ap.set_preset("Today", blocking=True); settle(50)
+ap.grab().save(str(AN_OUT / "analytics_today.png"))
+def custom_range():
+    ap.set_custom_range(_date.today() - _td(days=13), _date.today() - _td(days=7), blocking=True)
+    assert ap.snapshot.period.days == 7, ap.snapshot.period
+    assert ap.preset == "Custom" and ap.range_control.currentText() == "Custom"
+    assert ap.snapshot.previous.end == _date.today() - _td(days=14)
+step("analytics custom range", custom_range)
+ap.set_custom_range(_date.today(), _date.today() - _td(days=400), blocking=True)
+check("analytics custom >400 days → monthly, swapped bounds", ap.snapshot.bucket == "month"
+      and ap.snapshot.period.start < ap.snapshot.period.end, ap.snapshot.bucket)
+ap.set_preset("30D", blocking=True)
+ap.compare_toggle.setChecked(False)
+check("compare off hides deltas & overlay", not ap.kpis["revenue"].pill.isVisible() and not ap.trend.show_prev)
+ap.compare_toggle.setChecked(True)
+check("compare on shows deltas", ap.kpis["revenue"].pill.isVisibleTo(ap) and ap.trend.show_prev)
+csv_path = ap.export_csv(str(tmpdir / "analytics.csv"))
+txt = Path(csv_path).read_text(encoding="utf-8") if csv_path else ""
+check("analytics export CSV", "Top products" in txt and "Restock suggestions" in txt and "Summary" in txt)
+pdf_path = ap.export_pdf(str(tmpdir / "analytics.pdf"))
+check("analytics export PDF", pdf_path and Path(pdf_path).read_bytes()[:4] == b"%PDF")
+
+# scrolling: single outer scroll area that actually moves the content
+settle(50)
+sb = ap.scroll.verticalScrollBar()
+check("scroll: outer scrollbar has range", sb.maximum() > 0, f"max={sb.maximum()}")
+check("scroll: no nested scroll areas", not nested_scrolls(ap), str(nested_scrolls(ap)))
+y0 = ap.body.mapTo(ap.scroll.viewport(), ap.body.rect().topLeft()).y()
+from PySide6.QtGui import QWheelEvent  # noqa: E402
+from PySide6.QtCore import QPoint, QPointF  # noqa: E402
+target = ap.trend
+pos = QPointF(target.width() / 2, target.height() / 2)
+
+
+def wheel(widget):
+    e = QWheelEvent(pos, QPointF(widget.mapToGlobal(pos.toPoint())), QPoint(0, 0), QPoint(0, -360),
+                    Qt.NoButton, Qt.NoModifier, Qt.NoScrollPhase, False)
+    QApplication.sendEvent(widget, e)
+    return e
+
+
+# Real wheel events are spontaneous and bubble up when ignored; sendEvent does not
+# bubble, so check both halves: charts/cards ignore the wheel, the viewport scrolls.
+ignored = all(not wheel(w).isAccepted() for w in (ap.trend, ap.heatmap, ap.kpis["revenue"].spark))
+check("scroll: charts don't swallow wheel events", ignored)
+wheel(ap.scroll.viewport())
+settle(30)
+y1 = ap.body.mapTo(ap.scroll.viewport(), ap.body.rect().topLeft()).y()
+check("scroll: wheel scrolls the page content", sb.value() > 0 and y1 < y0, f"value={sb.value()} y0={y0} y1={y1}")
+sb.setValue(sb.maximum())
+settle(20)
+check("scroll: can reach the bottom", sb.value() == sb.maximum())
+sb.setValue(0)
+
+# responsive KPI grid
+g = ap.kpi_grid
+check("responsive KPI grid (2-4 cols)", g.columns_for(640) == 2 and g.columns_for(900) == 3 and g.cols == 3
+      and g.columns_for(2400) in (2, 3), f"{g.columns_for(640)} {g.columns_for(900)} {g.cols}")
+ap.resize(1208, 900); settle(80)
+ap.grab().save(str(AN_OUT / "analytics_seeded_viewport.png"))
+ap.close()
+use_db(base_db_path)
 
 check("real store.db untouched", hashlib.md5(real_db.read_bytes()).hexdigest() == real_md5)
 fails = [r for r in results if not r[1]]

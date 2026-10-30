@@ -28,10 +28,13 @@ A modern, professional Python desktop application for retail bill generation and
 - Auto-generated employee IDs
 
 ### 📊 Analytics & Reports
-- Best-selling products (Day/Month/Year)
-- Profit analysis by product
-- Revenue tracking
-- Interactive matplotlib charts
+- Date ranges (Today, 7D, 30D, 90D, This year, Custom) with compare-to-previous-period
+- KPIs with sparklines: revenue, gross profit & margin, bills, avg bill value, units, items per bill
+- Revenue over time (hover for values), peak-hours heatmap (weekday × hour), sales by category
+- Top products, slow movers / dead stock, restock suggestions with days of cover
+- Margin by category and product, items selling below cost
+- Export the current view to CSV or PDF
+- Native QPainter charts, data loaded off the UI thread
 
 ### 📱 Bluetooth Mobile Barcode Scanning & Market Comparison
 - Connect to a mobile device via Bluetooth for barcode scanning using the **[Bluetooth QR & Barcode to PC](https://play.google.com/store/apps/details?id=dev.fabik.bluetoothhid)** app (by Fabik)
@@ -44,7 +47,7 @@ A modern, professional Python desktop application for retail bill generation and
 - **Framework**: PySide6 (Qt for Python)
 - **Database**: SQLite
 - **PDF Generation**: ReportLab
-- **Analytics**: Matplotlib, Pandas
+- **Analytics**: native QPainter charts (no matplotlib/pandas)
 - **Architecture**: MVC pattern with clean separation of concerns
 
 ## Project Structure
@@ -175,10 +178,10 @@ To view existing users, check the `employee` table in `data/store.db`.
    - Search bills by number or customer
    - View bill details
    - Generate PDFs for past bills
-6. **Analytics**:
-   - View best-selling products
-   - Analyze profit by product
-   - Track sales trends
+6. **Analytics** (Overview shows today; Analytics is the deep dive):
+   - Pick a date range and compare with the previous period
+   - Find peak hours, top and slow-moving products
+   - See margins (add cost prices in Inventory) and what to restock
 
 ## Key Features Explained
 

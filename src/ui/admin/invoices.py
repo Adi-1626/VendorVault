@@ -62,6 +62,12 @@ class InvoicesWindow(QMainWindow):
         filter_layout.addWidget(clear_btn)
         
         filter_layout.addStretch()
+
+        # Bill-level CSV export (moved here from the Overview page)
+        self.export_btn = QPushButton("Export CSV")
+        self.export_btn.setToolTip("Export the bills listed below to CSV")
+        self.export_btn.clicked.connect(self.export_csv)
+        filter_layout.addWidget(self.export_btn)
         layout.addLayout(filter_layout)
         
         # Table
@@ -79,6 +85,7 @@ class InvoicesWindow(QMainWindow):
         """Load bills into table."""
         if bills is None:
             bills = self.billing_service.search_bills()
+        self._shown_bills = list(bills)
         
         self.table.setRowCount(len(bills))
         for idx, bill in enumerate(bills):
@@ -110,6 +117,28 @@ class InvoicesWindow(QMainWindow):
             action_widget.setLayout(action_layout)
             self.table.setCellWidget(idx, 5, action_widget)
     
+    def export_csv(self, path=None):
+        """Export the bills currently listed to a CSV file."""
+        import csv
+        from PySide6.QtWidgets import QFileDialog
+        bills = getattr(self, "_shown_bills", [])
+        if path is None:
+            path, _ = QFileDialog.getSaveFileName(self, "Export bills", "vendorvault-bills.csv", "CSV files (*.csv)")
+            if not path:
+                return None
+        try:
+            with open(path, "w", newline="", encoding="utf-8") as fh:
+                w = csv.writer(fh)
+                w.writerow(["Bill No", "Date", "Customer", "Phone", "Subtotal", "Discount", "Tax rate", "Tax", "Total"])
+                for b in bills:
+                    w.writerow([b.bill_no, b.date, b.customer_name, b.customer_no, f"{b.subtotal:.2f}",
+                                f"{b.discount:.2f}", b.tax_rate, f"{b.tax_amount:.2f}", f"{b.total:.2f}"])
+        except OSError as e:
+            QMessageBox.critical(self, "Export failed", str(e))
+            return None
+        QMessageBox.information(self, "Export", f"Exported {len(bills)} bills to\n{path}")
+        return path
+
     def search_bills(self):
         """Search bills."""
         search_term = self.search_input.text().strip()
