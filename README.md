@@ -1,6 +1,19 @@
 # VendorVault
 
-![VendorVault screenshot](docs/screenshots/VendorVault.jpg)
+![VendorVault analytics dashboard](docs/screenshots/vendorvault-analytics.jpg)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/vendorvault-pos.jpg" alt="VendorVault point of sale" /></td>
+    <td width="50%"><img src="docs/screenshots/vendorvault-inventory.jpg" alt="VendorVault inventory" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Point of sale: barcode scanning, quick add, cash change</sub></td>
+    <td align="center"><sub>Inventory: stock value, margins, restock list</sub></td>
+  </tr>
+</table>
+
+<sub>Analytics screenshot uses generated sample sales.</sub>
 
 A modern, professional Python desktop application for retail bill generation and inventory management.
 
